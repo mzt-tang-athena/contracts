@@ -37,6 +37,53 @@ describe("taskFrontmatter", () => {
     }
   });
 
+  it("accepts an occurrence note with a title and a previous occurrence", () => {
+    const result = taskFrontmatter.safeParse({
+      kind: "[[tasks]]",
+      title: "Water plants",
+      created: "2026-10-20",
+      "recurrence previous": "[[Water plants 2026-09-20]]",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.title).toBe("Water plants");
+      expect(result.data["recurrence previous"]).toBe("[[Water plants 2026-09-20]]");
+    }
+  });
+
+  it("wraps a bare recurrence previous value", () => {
+    const result = taskFrontmatter.safeParse({
+      kind: "[[tasks]]",
+      created: "2026-10-20",
+      "recurrence previous": "Water plants 2026-10-20",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data["recurrence previous"]).toBe("[[Water plants 2026-10-20]]");
+    }
+  });
+
+  it("accepts a task with neither title nor recurrence previous", () => {
+    const result = taskFrontmatter.safeParse({
+      kind: "[[tasks]]",
+      created: "2026-10-19",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.title).toBeUndefined();
+      expect(result.data["recurrence previous"]).toBeUndefined();
+    }
+  });
+
+  it("rejects an empty title", () => {
+    const result = taskFrontmatter.safeParse({
+      kind: "[[tasks]]",
+      title: "",
+      created: "2026-10-19",
+    });
+    expect(result.success).toBe(false);
+  });
+
   it("rejects a task with a broken recurrence", () => {
     const result = taskFrontmatter.safeParse({
       kind: "[[tasks]]",

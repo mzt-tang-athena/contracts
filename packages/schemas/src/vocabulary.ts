@@ -90,11 +90,13 @@ const optionalList = <T extends z.ZodTypeAny>(value: T) =>
 export const taskFrontmatter = z
   .object({
     kind: z.literal("[[tasks]]"),
+    title: z.string().min(1).nullish(),
     created: isoDate,
     completed: isoDate.nullish(),
     due: dateOrDatetime.nullish(),
     reminders: optionalList(isoDatetime),
     recurrence: recurrenceRule.nullish(),
+    "recurrence previous": wikilink.nullish(),
     lists: optionalList(wikilink),
   })
   .loose();
