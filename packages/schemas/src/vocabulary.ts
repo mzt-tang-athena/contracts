@@ -93,7 +93,8 @@ export const taskFrontmatter = z
     title: z.string().min(1).nullish(),
     /** Manual position inside its list; missing sorts after ordered. */
     order: z.coerce.number().int().nullish(),
-    created: isoDate,
+    /** New notes carry the minute; older ones hold the date alone. */
+    created: dateOrDatetime,
     completed: isoDate.nullish(),
     due: dateOrDatetime.nullish(),
     reminders: optionalList(isoDatetime),

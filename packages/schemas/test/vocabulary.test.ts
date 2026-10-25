@@ -51,6 +51,19 @@ describe("taskFrontmatter", () => {
     }
   });
 
+  it("accepts a creation date with or without a time", () => {
+    for (const created of ["2026-10-19", "2026-10-19T14:03"]) {
+      const result = taskFrontmatter.safeParse({
+        kind: "[[tasks]]",
+        created,
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.created).toBe(created);
+      }
+    }
+  });
+
   it("reads a manual order from a number or from its text form", () => {
     for (const order of [3, "3"]) {
       const result = taskFrontmatter.safeParse({
