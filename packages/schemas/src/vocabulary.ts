@@ -91,6 +91,8 @@ export const taskFrontmatter = z
   .object({
     kind: z.literal("[[tasks]]"),
     title: z.string().min(1).nullish(),
+    /** Manual position inside its list; missing sorts after ordered. */
+    order: z.coerce.number().int().nullish(),
     created: isoDate,
     completed: isoDate.nullish(),
     due: dateOrDatetime.nullish(),

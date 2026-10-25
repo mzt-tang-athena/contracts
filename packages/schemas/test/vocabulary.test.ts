@@ -51,6 +51,20 @@ describe("taskFrontmatter", () => {
     }
   });
 
+  it("reads a manual order from a number or from its text form", () => {
+    for (const order of [3, "3"]) {
+      const result = taskFrontmatter.safeParse({
+        kind: "[[tasks]]",
+        created: "2026-10-19",
+        order,
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.order).toBe(3);
+      }
+    }
+  });
+
   it("wraps a bare recurrence previous value", () => {
     const result = taskFrontmatter.safeParse({
       kind: "[[tasks]]",
