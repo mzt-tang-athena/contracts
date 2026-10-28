@@ -23,6 +23,8 @@ jobs:
         run: npm test
       - name: Build
         run: npm run build
+      - name: Check the package surface
+        run: npm run check:package
       - name: Check the tag matches the package version
         run: |
           tag="${GITHUB_REF_NAME#v}"
