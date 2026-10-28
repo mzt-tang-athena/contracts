@@ -6,7 +6,11 @@
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",
+    "check:package": "publint packages/schemas",
     "test": "npm test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "devDependencies": {
+    "publint": "^0.3.25"
   }
 }
