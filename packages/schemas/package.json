@@ -1,10 +1,25 @@
 {
-  "name": "@monkey-tasks/schemas",
-  "version": "0.1.0",
-  "private": true,
+  "name": "@mzt-tang-athena/schemas",
+  "version": "0.2.0",
+  "description": "Notes vocabulary schemas for the monkey projects and athena services",
   "type": "module",
-  "main": "src/index.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "VOCABULARY.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mzt-tang-athena/contracts.git",
+    "directory": "packages/schemas"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
   "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "prepack": "npm run build",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
