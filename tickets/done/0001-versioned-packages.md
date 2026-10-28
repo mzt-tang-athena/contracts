@@ -4,7 +4,7 @@ title: Publish schemas as a versioned package
 created: 2026-10-28
 priority: high
 assignee: opencode
-pr:
+pr: 2
 depends: []
 ---
 
@@ -34,4 +34,14 @@ owner, so the package becomes `@mzt-tang-athena/schemas` at `0.2.0`.
 
 ## Outcome
 
-(filled in before moving to done/)
+The package publishes to GitHub Packages as
+`@mzt-tang-athena/schemas@0.2.0`. It builds to `dist`, so a consumer
+installs compiled JavaScript and types. The publish workflow runs on a
+`v*` tag and refuses a tag that does not match the version. A consumer
+that falls behind shows in `npm outdated`.
+
+The submodule stays until monkey-tasks moves. That change is separate
+because another workflow holds that repo.
+
+The registry needs a token for every install, even for a public
+package. Each consumer sets one line in `.npmrc`.
