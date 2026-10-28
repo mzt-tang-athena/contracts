@@ -29,8 +29,21 @@ second entry point or a CommonJS consumer.
 - [x] `package.json` carries `exports` and `engines`
 - [x] CI runs `publint` after the build
 - [x] `publint` reports no error
-- [ ] `0.2.1` publishes and a consumer still imports it
+- [x] `0.2.1` publishes and a consumer still imports it
 
 ## Outcome
 
-(filled in before moving to done/)
+`publint` checks the tarball in CI and before a publish, and reports
+All good. The package declares an `exports` map and `engines`.
+
+`0.2.1` publishes. A consumer that asks for `^0.2.0` resolves to it.
+
+The check ran from a clean consumer directory:
+
+- the package root imports, and exposes 14 names
+- a deep import fails with `ERR_PACKAGE_PATH_NOT_EXPORTED`, which shows
+  the map is active
+- `engines` reads `>=22`
+
+Metro 0.87 in monkey-tasks reads `exports`, so the app stays safe when
+it moves off the submodule.
