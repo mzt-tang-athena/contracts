@@ -4,7 +4,7 @@ title: Declare the package surface and check the tarball
 created: 2026-10-28
 priority: normal
 assignee: opencode
-pr:
+pr: 3
 depends: []
 ---
 
@@ -26,9 +26,9 @@ second entry point or a CommonJS consumer.
 
 ## Acceptance
 
-- [ ] `package.json` carries `exports` and `engines`
-- [ ] CI runs `publint` after the build
-- [ ] `publint` reports no error
+- [x] `package.json` carries `exports` and `engines`
+- [x] CI runs `publint` after the build
+- [x] `publint` reports no error
 - [ ] `0.2.1` publishes and a consumer still imports it
 
 ## Outcome
