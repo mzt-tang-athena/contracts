@@ -10,8 +10,10 @@ GitHub Packages (ADR 0001).
 1. `packages/schemas` - the notes vocabulary: task, deed, and list
    notes for monkey-tasks (moved from monkey-tasks, first tagged
    v0.1.0).
-2. Next: a budget package when monkey budget starts.
-3. Consumers move one at a time. monkey-tasks still pins the submodule
+2. `packages/browser-driver` - the run event stream for the browser
+   driver, tagged `browser-driver-v0.1.0`.
+3. Next: a budget package when monkey budget starts.
+4. Consumers move one at a time. monkey-tasks still pins the submodule
    until its own change lands.
 
 ## What is inside
