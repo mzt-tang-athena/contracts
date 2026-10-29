@@ -3,13 +3,15 @@ on:
   push:
     tags:
       - "v*"
+      - "browser-driver-v*"
 
 permissions:
   contents: read
   packages: write
 
 jobs:
-  publish:
+  schemas:
+    if: startsWith(github.ref_name, 'v')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -35,5 +37,35 @@ jobs:
           fi
       - name: Publish
         run: npm publish --workspace @mzt-tang-athena/schemas
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  browser-driver:
+    if: startsWith(github.ref_name, 'browser-driver-v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://npm.pkg.github.com
+          cache: npm
+      - run: npm ci
+      - name: Test
+        run: npm test
+      - name: Build
+        run: npm run build
+      - name: Check the package surface
+        run: npx publint packages/browser-driver
+      - name: Check the tag matches the package version
+        run: |
+          tag="${GITHUB_REF_NAME#browser-driver-v}"
+          version="$(node -p "require('./packages/browser-driver/package.json').version")"
+          if [ "$tag" != "$version" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match package version $version"
+            exit 1
+          fi
+      - name: Publish
+        run: npm publish --workspace @mzt-tang-athena/browser-driver
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
