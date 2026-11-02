@@ -4,7 +4,7 @@ title: Publish the shared Vale rules package
 created: 2026-11-02
 priority: normal
 assignee: opencode
-pr:
+pr: 7
 depends: []
 ---
 
