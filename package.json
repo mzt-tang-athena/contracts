@@ -6,7 +6,7 @@
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",
-    "check:package": "publint packages/schemas",
+    "check:package": "publint packages/schemas && publint packages/browser-driver && publint packages/vale-rules",
     "test": "npm test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present"
   },

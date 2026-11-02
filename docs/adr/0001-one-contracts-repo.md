@@ -7,8 +7,9 @@
 
 Schema definitions lived per project. The monkey-tasks vocabulary sat
 in `packages/schemas` inside monkey-tasks. The plan now has more than
-one project sharing contracts: monkey-tasks, monkey budget, athena
-services, and future projects that each contribute and consume.
+one project sharing contracts. The set includes monkey-tasks, monkey
+budget, athena services, and future projects that each contribute and
+consume.
 
 ## Decision
 
@@ -38,10 +39,10 @@ JavaScript and type declarations. The TypeScript source stays out of
 the tarball. monkey-tasks needed a custom Metro resolver to read the
 source; that resolver can go.
 
-The package is `@mzt-tang-athena/schemas`, not `@monkey-tasks/schemas`.
-GitHub Packages requires the scope to name the repository owner. The
-old name was also wrong, because monkey budget reads the same
-vocabulary.
+The package name is `@mzt-tang-athena/schemas`. The old name
+`@monkey-tasks/schemas` was wrong. GitHub Packages requires the scope
+to name the repository owner. The old name was also too narrow,
+because monkey budget reads the same vocabulary.
 
 We rejected a submodule pinned to a tag. A tag shows a version, but it
 cannot express a range, and the bump stays manual.

@@ -1,0 +1,33 @@
+{
+  "name": "@mzt-tang-athena/vale-rules",
+  "version": "0.1.0",
+  "description": "Shared MyRules style pack for Vale",
+  "type": "module",
+  "bin": {
+    "vale-rules": "bin/vale-rules.js"
+  },
+  "exports": {
+    "./styles/*": "./styles/*",
+    "./package.json": "./package.json"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "files": [
+    "bin",
+    "styles",
+    "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mzt-tang-athena/contracts.git",
+    "directory": "packages/vale-rules"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "scripts": {
+    "test": "node --test test/cli.test.js",
+    "test:vale": "node --test test/vale.test.js"
+  }
+}

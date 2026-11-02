@@ -1,0 +1,30 @@
+extends: existence
+message: "Plain word instead: drop or replace '%s'."
+level: warning
+ignorecase: true
+tokens:
+  - basically
+  - essentially
+  - actually
+  - obviously
+  - simply
+  - very
+  - really
+  - quite
+  - totally
+  - extremely
+  - completely
+  - absolutely
+  - literally
+  - arguably
+  - notably
+  - interestingly
+  - frankly
+  - ironically
+  - elegant
+  - beautifully
+  - clever
+  - poetic
+  - magically
+  - powerful
+  - significantly

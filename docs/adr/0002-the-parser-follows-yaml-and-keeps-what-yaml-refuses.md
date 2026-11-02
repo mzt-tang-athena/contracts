@@ -8,14 +8,16 @@
 `parseFrontmatter` in `packages/schemas` is a small parser we wrote.
 It disagreed with YAML in two places. It read a list item only at two
 spaces, and it kept the backslashes of a double-quoted value. The
-monkey-tasks app then lost a task's lists on save and showed titles
-with extra backslashes (monkey-tasks ticket 0053).
+monkey-tasks app then lost a task's lists on save. It also showed
+titles with extra backslashes (monkey-tasks ticket 0053).
 
 The fix raised two questions. Should a YAML library replace the
 parser? And what should the parser do with a note that YAML refuses?
-Three cases come up in real notes: a list item after a tab, an escape
-YAML does not know, such as `\U` in `"C:\Users"`, and a value with a
-quote at one end only.
+Three cases come up in real notes:
+
+- a list item after a tab
+- an escape YAML does not know, such as `\U` in `"C:\Users"`
+- a value with a quote at one end only
 
 ## Decision
 
@@ -26,8 +28,8 @@ keeps its backslash. A one-sided quote stays part of the value.
 
 The `vault:check` script in monkey-tasks reports each note that YAML
 refuses (monkey-tasks ADR 0029, amendment of 2026-10-26). The app
-shows the task, and the check tells the user which line to fix for
-other YAML readers, such as Obsidian.
+shows the task. The check tells the user which line to fix for other
+YAML readers, such as Obsidian.
 
 We rejected two alternatives:
 

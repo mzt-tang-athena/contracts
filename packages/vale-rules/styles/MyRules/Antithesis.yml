@@ -1,0 +1,6 @@
+extends: existence
+message: "Antithesis: make the claim once, without the ', not X' tail."
+level: warning
+ignorecase: true
+scope: sentence
+raw: '(?:\b(?:is|are|was|were|it''s|that''s)\b[^.;:!?]{1,60},\s+not\b)|(?:\bnot (?:just|only)\b[^.;]{1,60}\bbut\b)|(?:\b(?:is not|isn''t|are not|aren''t)\b[^.]{1,60},\s*(?:it''s|it is|that''s|they''re)\b)'
