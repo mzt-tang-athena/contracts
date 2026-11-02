@@ -1,3 +1,6 @@
 node_modules/
 dist/
 .vale/styles/write-good/
+
+# Worktree setup
+.worktree.env
