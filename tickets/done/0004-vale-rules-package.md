@@ -63,4 +63,23 @@ it can run the command from the code job, which already installs.
 
 ## Outcome
 
-(filled in before moving to done/)
+`@mzt-tang-athena/vale-rules@0.1.0` is in GitHub Packages. The registry
+lists it as created on 2026-11-02.
+
+The package holds six rule files: Antithesis, Drama, EmDash, Plain,
+SentenceLength and `Readability/LIX.yml`. `vale-rules sync` copies them
+into `.vale/styles` and leaves other styles alone. CLI tests cover the
+copy, the merge and the custom path. The Vale test covers the four
+Antithesis samples, the quiet clean sentence, and every rule firing.
+
+contracts now uses the pack it publishes. The local `MyRules` and
+`Readability` copies are gone, and the Makefile and docs CI run sync.
+
+The first tag run published 0.1.0. The same run failed in the schemas
+job, because the `v*` tag pattern also matched `vale-rules-v0.1.0`.
+PR #8 makes the schemas job skip package tags. A second tag push hit a
+409 because 0.1.0 already existed. The registry check shows the
+published version.
+
+Consumer follow-ups are in the table above. They stay out of this
+ticket.
