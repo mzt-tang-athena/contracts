@@ -1,6 +1,8 @@
 node_modules/
 dist/
 .vale/styles/write-good/
+.vale/styles/MyRules/
+.vale/styles/Readability/
 
 # Worktree setup
 .worktree.env

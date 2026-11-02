@@ -4,6 +4,7 @@ on:
     tags:
       - "v*"
       - "browser-driver-v*"
+      - "vale-rules-v*"
 
 permissions:
   contents: read
@@ -67,5 +68,33 @@ jobs:
           fi
       - name: Publish
         run: npm publish --workspace @mzt-tang-athena/browser-driver
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  vale-rules:
+    if: startsWith(github.ref_name, 'vale-rules-v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://npm.pkg.github.com
+          cache: npm
+      - run: npm ci
+      - name: Test
+        run: npm test --workspace @mzt-tang-athena/vale-rules
+      - name: Check the package surface
+        run: npx publint packages/vale-rules
+      - name: Check the tag matches the package version
+        run: |
+          tag="${GITHUB_REF_NAME#vale-rules-v}"
+          version="$(node -p "require('./packages/vale-rules/package.json').version")"
+          if [ "$tag" != "$version" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match package version $version"
+            exit 1
+          fi
+      - name: Publish
+        run: npm publish --workspace @mzt-tang-athena/vale-rules
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

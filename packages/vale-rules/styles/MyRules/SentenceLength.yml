@@ -1,0 +1,7 @@
+extends: metric
+message: "Sentence too long: %s words. Split it, or trim it. The bar is 20."
+link: https://en.wikipedia.org/wiki/Simplified_Technical_English
+level: warning
+scope: sentence
+formula: words
+condition: "> 20.0"
