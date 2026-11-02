@@ -12,7 +12,10 @@ permissions:
 
 jobs:
   schemas:
-    if: startsWith(github.ref_name, 'v')
+    # The "v*" tag pattern also catches package tags that start with a
+    # package name, such as vale-rules-v0.1.0. Keep this job to the bare
+    # version tags, which never contain "-v".
+    if: startsWith(github.ref_name, 'v') && !contains(github.ref_name, '-v')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
