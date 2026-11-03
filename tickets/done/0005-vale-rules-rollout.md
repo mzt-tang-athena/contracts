@@ -27,13 +27,13 @@ green.
 
 | Repo | `package.json` | Local `MyRules` today | Local `Readability/LIX.yml` | State |
 | --- | --- | --- | --- | --- |
-| monkey-budget | yes | Antithesis, Drama, EmDash | yes | open |
-| athena-infra | yes | Drama, EmDash, Plain, SentenceLength | yes | open |
+| monkey-budget | yes | Antithesis, Drama, EmDash | yes | done, PR 24 |
+| athena-infra | yes | Drama, EmDash, Plain, SentenceLength | yes | done, PR 18 |
 | project-template | no, add one | Drama, EmDash | yes | done, PR 6 |
 | contracts | yes | none, ticket 0004 removed Drama and EmDash | none, ticket 0004 removed it | done |
-| browser-driver | yes | Drama, EmDash | yes | open |
+| browser-driver | yes | Drama, EmDash | yes | done, PR 16 |
 | monkey-tasks | yes | Drama, EmDash | yes | done, PR 78 |
-| my-dot-files | no, add one | Drama, EmDash, Plain, SentenceLength | yes | open |
+| my-dot-files | no, add one | Drama, EmDash, Plain, SentenceLength | yes | done, PR 11 |
 
 contracts is the reference. Its Makefile and docs CI run sync from the
 workspace package. A consumer PR can copy that wiring, then use the
