@@ -4,7 +4,7 @@ title: Roll out the Vale rules package to consumers
 created: 2026-11-03
 priority: normal
 assignee:
-pr:
+pr: 10
 depends: []
 ---
 
@@ -156,7 +156,7 @@ warnings.
 
 ## Progress
 
-- 2026-11-03: coordination ticket added. Rollout is open.
+- 2026-11-03: coordination ticket added in PR #10. Rollout is open.
 
 ## Outcome
 
