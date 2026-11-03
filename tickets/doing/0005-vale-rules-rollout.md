@@ -3,7 +3,7 @@ id: 0005
 title: Roll out the Vale rules package to consumers
 created: 2026-11-03
 priority: normal
-assignee:
+assignee: opencode
 pr: 10
 depends: []
 ---
@@ -29,10 +29,10 @@ green.
 | --- | --- | --- | --- | --- |
 | monkey-budget | yes | Antithesis, Drama, EmDash | yes | open |
 | athena-infra | yes | Drama, EmDash, Plain, SentenceLength | yes | open |
-| project-template | no, add one | Drama, EmDash | yes | open |
+| project-template | no, add one | Drama, EmDash | yes | done, PR 6 |
 | contracts | yes | none, ticket 0004 removed Drama and EmDash | none, ticket 0004 removed it | done |
 | browser-driver | yes | Drama, EmDash | yes | open |
-| monkey-tasks | yes | Drama, EmDash | yes | open |
+| monkey-tasks | yes | Drama, EmDash | yes | done, PR 78 |
 | my-dot-files | no, add one | Drama, EmDash, Plain, SentenceLength | yes | open |
 
 contracts is the reference. Its Makefile and docs CI run sync from the
@@ -101,64 +101,30 @@ from the workspace. This ticket uses it as the reference.
 
 ## CI auth
 
-The package needs `read:packages`. Use one of two routes:
+The package needs `read:packages`. The organization is on GitHub Free,
+and on Free an organization secret does not reach a private repository.
+So the routes split:
 
-1. `${{ secrets.GITHUB_TOKEN }}` with `permissions: packages: read` in
-   the workflow. Pass it as `NODE_AUTH_TOKEN` to `actions/setup-node`
-   with `registry-url: https://npm.pkg.github.com`. This works when the
-   package access list includes the consumer repo.
-2. A repo secret with a personal access token that has `read:packages`.
-   Use this when the org package policy blocks the repo token.
+- A public repo uses the organization secret `VALE_RULES_TOKEN`.
+- A private repo uses a repository secret of the same name and value.
 
-Grant each consumer repo read access in the package settings when a
-repo uses the first route. Keep the token in the step `env` only. Never echo
-`.npmrc`, never print the token, and never commit it. setup-node writes
-a temporary `.npmrc` for the job.
+Both carry a personal access token (classic) with `read:packages`. The
+workflow passes it as `NODE_AUTH_TOKEN`:
 
-Local runs use the user's `~/.npmrc` token. The Makefile does not store
-a token.
-
-## Parity check
-
-Run the repo's current prose command before the change and save the
-output. Run the same command after sync and after deleting the local
-files. Compare the file set, the error count and the warning count.
-
-Example:
-
-```sh
-git ls-files '*.md' | sort > /tmp/vale-files-before.txt
-git ls-files '*.md' | xargs vale --output=line > /tmp/vale-before.txt
-# switch to the package
-git ls-files '*.md' | sort > /tmp/vale-files-after.txt
-git ls-files '*.md' | xargs vale --output=line > /tmp/vale-after.txt
-diff /tmp/vale-files-before.txt /tmp/vale-files-after.txt
-diff /tmp/vale-before.txt /tmp/vale-after.txt
+```yaml
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.VALE_RULES_TOKEN }}
 ```
 
-The file lists must match. The reports must match, or the PR must
-explain each difference. The done condition is 0 errors and no new
-warnings.
+Do not use `secrets.GITHUB_TOKEN`, and do not add
+`permissions: packages: read`. A repository token belongs to the
+consumer, so it cannot read a package linked to `contracts`.
 
-## Acceptance
+A new private repo adds the secret with one command:
 
-- [ ] every consumer row above links to a merged PR
-- [ ] each consumer Makefile runs `npx vale-rules sync` before Vale
-- [ ] each consumer CI prose job installs, authenticates, and syncs before Vale
-- [ ] each consumer keeps its `write-good` clone step
-- [ ] no consumer keeps a local `MyRules` copy
-- [ ] no consumer keeps a local `Readability/LIX.yml` copy, unless it owns a different LIX rule
-- [ ] repo-local overrides remain in `.vale.ini`
-- [ ] each consumer PR records the parity file set and report
-- [ ] each consumer PR has green CI
-- [ ] my-dot-files installs the global rules from the package, not a vendored snapshot
-- [ ] no consumer adds a second package or a submodule
+```sh
+gh secret set VALE_RULES_TOKEN --repo OWNER/REPO
+```
 
-## Progress
-
-- 2026-11-03: coordination ticket added in PR #10. Rollout is open.
-
-## Outcome
-
-Open. Record the result here when every consumer PR has merged and CI
-is green.
+Keep the token in the step `env` only. Never echo `.npmrc`, never print
+the token, and never commit it.
