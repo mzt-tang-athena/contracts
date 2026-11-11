@@ -10,6 +10,9 @@ Rules that hold for all note types:
 - The file name, without extension, is the note's title.
 - Wikilink-valued properties are stored in their quoted form, for
   example `status: "[[active]]"`.
+- A `kind` property reads as the bare value (`tasks`) or the link form
+  (`"[[tasks]]"`). It always parses to the link form, and writers store
+  the link form.
 - Dates are `YYYY-MM-DD`. Datetimes are `YYYY-MM-DDTHH:MM`, seconds
   optional. No time zones; the phone's local time is the meaning.
 - An absent property means the documented default. Nothing is required

@@ -19,6 +19,38 @@ describe("taskFrontmatter", () => {
     expect(result.success).toBe(true);
   });
 
+  it("reads a bare kind and returns the link form", () => {
+    const result = taskFrontmatter.safeParse({
+      kind: "tasks",
+      created: "2026-10-19",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.kind).toBe("[[tasks]]");
+    }
+  });
+
+  it("reads the link kind unchanged", () => {
+    const result = taskFrontmatter.safeParse({
+      kind: "[[tasks]]",
+      created: "2026-10-19",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.kind).toBe("[[tasks]]");
+    }
+  });
+
+  it("rejects another kind in either shape", () => {
+    for (const kind of ["deeds", "[[deeds]]", "lists", "[[list]]", ""]) {
+      const result = taskFrontmatter.safeParse({
+        kind,
+        created: "2026-10-19",
+      });
+      expect(result.success).toBe(false);
+    }
+  });
+
   it("accepts a full task note and preserves unknown properties", () => {
     const result = taskFrontmatter.safeParse({
       kind: "[[tasks]]",
@@ -154,6 +186,35 @@ describe("deedFrontmatter", () => {
     expect(result.success).toBe(true);
   });
 
+  it("reads a bare kind and returns the link form", () => {
+    const result = deedFrontmatter.safeParse({
+      kind: "deeds",
+      status: "[[active]]",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.kind).toBe("[[deeds]]");
+    }
+  });
+
+  it("reads the link kind unchanged", () => {
+    const result = deedFrontmatter.safeParse({
+      kind: "[[deeds]]",
+      status: "[[active]]",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.kind).toBe("[[deeds]]");
+    }
+  });
+
+  it("rejects another kind in either shape", () => {
+    for (const kind of ["tasks", "[[tasks]]", "lists", "[[list]]", ""]) {
+      const result = deedFrontmatter.safeParse({ kind, status: "[[active]]" });
+      expect(result.success).toBe(false);
+    }
+  });
+
   it("accepts empty list properties from the template", () => {
     const result = deedFrontmatter.safeParse({
       kind: "[[deeds]]",
@@ -251,6 +312,35 @@ describe("listFrontmatter", () => {
     });
     expect(result.success).toBe(true);
   });
+
+  it("reads a bare kind and returns the link form", () => {
+    const result = listFrontmatter.safeParse({
+      kind: "lists",
+      created: "2026-10-19",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.kind).toBe("[[lists]]");
+    }
+  });
+
+  it("reads the link kind unchanged", () => {
+    const result = listFrontmatter.safeParse({
+      kind: "[[lists]]",
+      created: "2026-10-19",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.kind).toBe("[[lists]]");
+    }
+  });
+
+  it("rejects another kind in either shape", () => {
+    for (const kind of ["tasks", "[[tasks]]", "deeds", "[[list]]", ""]) {
+      const result = listFrontmatter.safeParse({ kind, created: "2026-10-19" });
+      expect(result.success).toBe(false);
+    }
+  });
 });
 
 describe("parseFrontmatter", () => {
@@ -301,6 +391,16 @@ describe("parseFrontmatter", () => {
 });
 
 describe("validateNote", () => {
+  it("reads a bare kind from a note's text as the link form", () => {
+    const bare = validateNote(
+      "call the dentist.md",
+      "---\nkind: tasks\ncreated: 2026-10-19\n---\n",
+      taskFrontmatter,
+    );
+    expect(bare.errors).toBeNull();
+    expect(bare.data?.kind).toBe("[[tasks]]");
+  });
+
   it("returns data on a valid note and errors on an invalid one", () => {
     const good = validateNote(
       "call the dentist.md",
