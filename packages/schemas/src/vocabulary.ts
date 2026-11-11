@@ -5,9 +5,10 @@ import { z } from "zod";
  *
  * Notes store wikilink-valued properties in their quoted form, for
  * example `status: "[[active]]"`. Dates are `YYYY-MM-DD`; datetimes are
- * `YYYY-MM-DDTHH:MM`, seconds optional. Everything unknown is
- * preserved, never rejected, so notes keep whatever frontmatter
- * Obsidian plugins add.
+ * `YYYY-MM-DDTHH:MM`, seconds optional. A `kind` reads as a bare value
+ * or as its link form, and always parses to the link form. Everything
+ * unknown is preserved, never rejected, so notes keep whatever
+ * frontmatter Obsidian plugins add.
  */
 
 /** A wikilink-valued frontmatter value, for example "[[digital]]". */
@@ -26,6 +27,15 @@ export type Wikilink = z.infer<typeof wikilink>;
 /** The target inside a wikilink: "[[digital]]" -> "digital". */
 export function wikilinkTarget(link: Wikilink): string {
   return link.slice(2, -2);
+}
+
+/**
+ * A note's kind marker. The bare value ("tasks") and the link form
+ * ("[[tasks]]") both read; the parsed value is always the link form,
+ * which is what every writer stores.
+ */
+function kindLink(name: "tasks" | "deeds" | "lists") {
+  return wikilink.pipe(z.literal(`[[${name}]]`));
 }
 
 /** Date only: YYYY-MM-DD. */
@@ -89,7 +99,7 @@ const optionalList = <T extends z.ZodTypeAny>(value: T) =>
 /** Frontmatter of a task note, per ticket 0004. */
 export const taskFrontmatter = z
   .object({
-    kind: z.literal("[[tasks]]"),
+    kind: kindLink("tasks"),
     title: z.string().min(1).nullish(),
     /** Manual position inside its list; missing sorts after ordered. */
     order: z.coerce.number().int().nullish(),
@@ -108,7 +118,7 @@ export type TaskFrontmatter = z.infer<typeof taskFrontmatter>;
 /** Frontmatter of a deed note, matching the existing vault shape. */
 export const deedFrontmatter = z
   .object({
-    kind: z.literal("[[deeds]]"),
+    kind: kindLink("deeds"),
     status: deedStatus,
     "parent deed": wikilink.nullish(),
     categories: optionalList(wikilink),
@@ -127,7 +137,7 @@ export type DeedFrontmatter = z.infer<typeof deedFrontmatter>;
 /** Frontmatter of a list note, per ticket 0004. */
 export const listFrontmatter = z
   .object({
-    kind: z.literal("[[lists]]"),
+    kind: kindLink("lists"),
     created: isoDate,
   })
   .loose();
