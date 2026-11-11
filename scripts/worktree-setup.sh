@@ -41,6 +41,9 @@ fi
     printf 'MAIN_PATH=%s\n' "$main_path"
 } > .worktree.env
 
+git config --local core.hooksPath hooks
+echo "worktree-setup: core.hooksPath set to hooks"
+
 echo "worktree-setup: $worktree_name"
 
 # Dependencies. This is one npm workspace, so the root install covers
