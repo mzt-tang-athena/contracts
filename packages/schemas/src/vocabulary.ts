@@ -105,7 +105,8 @@ export const taskFrontmatter = z
     order: z.coerce.number().int().nullish(),
     /** New notes carry the minute; older ones hold the date alone. */
     created: dateOrDatetime,
-    completed: isoDate.nullish(),
+    /** New notes carry the minute; older ones hold the date alone. */
+    completed: dateOrDatetime.nullish(),
     due: dateOrDatetime.nullish(),
     reminders: optionalList(isoDatetime),
     recurrence: recurrenceRule.nullish(),
@@ -129,7 +130,7 @@ export const deedFrontmatter = z
     due: dateOrDatetime.nullish(),
     reminders: optionalList(isoDatetime),
     recurrence: recurrenceRule.nullish(),
-    completed: isoDate.nullish(),
+    completed: dateOrDatetime.nullish(),
   })
   .loose();
 export type DeedFrontmatter = z.infer<typeof deedFrontmatter>;
