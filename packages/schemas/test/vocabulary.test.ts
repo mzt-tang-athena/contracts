@@ -96,6 +96,31 @@ describe("taskFrontmatter", () => {
     }
   });
 
+  it("accepts a completion date with or without a time", () => {
+    for (const completed of ["2026-11-11", "2026-11-11T18:08"]) {
+      const result = taskFrontmatter.safeParse({
+        kind: "[[tasks]]",
+        created: "2026-11-11",
+        completed,
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.completed).toBe(completed);
+      }
+    }
+  });
+
+  it("rejects a completion that is not a date or a datetime", () => {
+    for (const completed of ["yesterday", "2026-11-11 18:08", "11-11-2026"]) {
+      const result = taskFrontmatter.safeParse({
+        kind: "[[tasks]]",
+        created: "2026-11-11",
+        completed,
+      });
+      expect(result.success).toBe(false);
+    }
+  });
+
   it("reads a manual order from a number or from its text form", () => {
     for (const order of [3, "3"]) {
       const result = taskFrontmatter.safeParse({
@@ -301,6 +326,26 @@ describe("deedFrontmatter", () => {
     });
     expect(deedIsDone(done)).toBe(true);
     expect(deedIsDone(active)).toBe(false);
+  });
+
+  it("accepts a completion date with or without a time", () => {
+    for (const completed of ["2026-11-11", "2026-11-11T18:08"]) {
+      const result = deedFrontmatter.safeParse({
+        kind: "[[deeds]]",
+        status: "[[done]]",
+        completed,
+      });
+      expect(result.success).toBe(true);
+    }
+  });
+
+  it("rejects a completion that is not a date or a datetime", () => {
+    const result = deedFrontmatter.safeParse({
+      kind: "[[deeds]]",
+      status: "[[done]]",
+      completed: "yesterday",
+    });
+    expect(result.success).toBe(false);
   });
 });
 
