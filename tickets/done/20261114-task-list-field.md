@@ -46,14 +46,28 @@ This is the contract half. The app half is monkey-tasks ticket
 
 ## Acceptance
 
-- [ ] `taskFrontmatter` output carries `list` and no `lists`.
-- [ ] A legacy two-link `lists` resolves to its first link.
-- [ ] An explicit `list` wins over `lists`.
-- [ ] A malformed legacy `lists` still fails validation.
-- [ ] `npm test`, `npm run typecheck`, `npm run build` and
+- [x] `taskFrontmatter` output carries `list` and no `lists`.
+- [x] A legacy two-link `lists` resolves to its first link.
+- [x] An explicit `list` wins over `lists`.
+- [x] A malformed legacy `lists` still fails validation.
+- [x] `npm test`, `npm run typecheck`, `npm run build` and
       `npm run check:package` pass.
-- [ ] `VOCABULARY.md` describes `list` and the legacy read.
+- [x] `VOCABULARY.md` describes `list` and the legacy read.
 
 ## Outcome
 
-(filled in before moving to done/)
+Shipped on 2026-11-14.
+
+- `taskFrontmatter` validates `list` and keeps `lists` for validation
+  only. A transform drops `lists` and promotes its first link when
+  `list` is absent. An explicit `list`, including an empty one, wins.
+- `validateNote` widens to `z.ZodType`. ADR
+  `20261114-the-schema-normalizes-membership` records why.
+- Tests cover one list, a legacy two-link list, explicit wins, neither,
+  an explicit empty list, an empty string, a block under `list`, a
+  malformed legacy value, and the note text path.
+- The built package returns the expected shape for all five live cases.
+- `npm test` passes 99 schema tests. Typecheck, build and
+  `check:package` pass.
+
+The app half is monkey-tasks ticket `20261111-one-list-field`.

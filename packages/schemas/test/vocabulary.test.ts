@@ -211,9 +211,23 @@ describe("taskFrontmatter", () => {
     const result = taskFrontmatter.safeParse({
       kind: "[[tasks]]",
       created: "2026-10-19",
-      list: { name: "Focus" },
+      list: ["[[Focus]]"],
     });
     expect(result.success).toBe(false);
+  });
+
+  it("keeps an explicit empty list over a legacy lists", () => {
+    const result = taskFrontmatter.safeParse({
+      kind: "[[tasks]]",
+      created: "2026-10-19",
+      list: null,
+      lists: ["[[Focus]]"],
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.list).toBeNull();
+      expect(result.data).not.toHaveProperty("lists");
+    }
   });
 
   it("rejects a malformed legacy lists", () => {
