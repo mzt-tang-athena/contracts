@@ -101,7 +101,7 @@ export const taskFrontmatter = z
   .object({
     kind: kindLink("tasks"),
     title: z.string().min(1).nullish(),
-    /** Manual position inside its list; missing sorts after ordered. */
+    /** Manual position inside its tab; missing sorts after ordered. */
     order: z.coerce.number().int().nullish(),
     /** New notes carry the minute; older ones hold the date alone. */
     created: dateOrDatetime,
@@ -111,9 +111,18 @@ export const taskFrontmatter = z
     reminders: optionalList(isoDatetime),
     recurrence: recurrenceRule.nullish(),
     "recurrence previous": wikilink.nullish(),
+    /** The one list this task belongs to; absent means Main. */
+    list: wikilink.nullish(),
+    /** Legacy. Validated so broken notes still fail, then dropped. */
     lists: optionalList(wikilink),
   })
-  .loose();
+  .loose()
+  .transform(({ lists, ...rest }) => {
+    const inherited = lists?.[0];
+    return rest.list === undefined && inherited !== undefined
+      ? { ...rest, list: inherited }
+      : rest;
+  });
 export type TaskFrontmatter = z.infer<typeof taskFrontmatter>;
 
 /** Frontmatter of a deed note, matching the existing vault shape. */

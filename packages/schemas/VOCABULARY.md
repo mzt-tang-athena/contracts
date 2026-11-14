@@ -35,7 +35,10 @@ body is optional free text, usually empty.
 | `due` | date or datetime | unscheduled | the day the task matters |
 | `reminders` | datetimes | silent | when the phone buzzes; several allowed |
 | `recurrence` | RRULE string | one-off | iCalendar recurrence for `due` |
-| `lists` | wikilinks | unlisted | list notes this task belongs to |
+| `list` | wikilink | Main | the one list this task belongs to |
+
+An old `lists` property reads its first link. It is validated, then
+dropped; writers store `list`.
 
 Derived state: done means `completed` is present. Tasks carry no
 `status` property.
@@ -79,7 +82,8 @@ Derived state: done means `status` is `"[[done]]"`. The rename of
 ## List notes
 
 One file per list in `Tasks/Lists/`. A list is a curated bucket of
-tasks; a task belongs to a list through its `lists` property.
+tasks; a task belongs to a list through its `list` property. A note
+with the old `lists` property reads its first link.
 
 | Property | Form | Default when absent | Meaning |
 |---|---|---|---|
