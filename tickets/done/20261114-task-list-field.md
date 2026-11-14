@@ -3,7 +3,7 @@ title: One list field on the task note
 created: 2026-11-14
 priority: high
 assignee: omp
-pr:
+pr: 18
 depends: []
 ---
 
