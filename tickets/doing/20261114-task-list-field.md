@@ -51,7 +51,7 @@ This is the contract half. The app half is monkey-tasks ticket
 - [ ] An explicit `list` wins over `lists`.
 - [ ] A malformed legacy `lists` still fails validation.
 - [ ] `npm test`, `npm run typecheck`, `npm run build` and
-      `npx publint` pass.
+      `npm run check:package` pass.
 - [ ] `VOCABULARY.md` describes `list` and the legacy read.
 
 ## Outcome
