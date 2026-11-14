@@ -135,6 +135,110 @@ describe("taskFrontmatter", () => {
     }
   });
 
+  it("reads a list as one wikilink and keeps no legacy field", () => {
+    const result = taskFrontmatter.safeParse({
+      kind: "[[tasks]]",
+      created: "2026-10-19",
+      list: "[[Focus]]",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.list).toBe("[[Focus]]");
+      expect(result.data).not.toHaveProperty("lists");
+    }
+  });
+
+  it("resolves a legacy lists to its first link", () => {
+    const result = taskFrontmatter.safeParse({
+      kind: "[[tasks]]",
+      created: "2026-10-19",
+      lists: ["[[Focus]]", "[[Home]]"],
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.list).toBe("[[Focus]]");
+      expect(result.data).not.toHaveProperty("lists");
+    }
+  });
+
+  it("keeps an explicit list over a legacy lists", () => {
+    const result = taskFrontmatter.safeParse({
+      kind: "[[tasks]]",
+      created: "2026-10-19",
+      list: "[[Focus]]",
+      lists: ["[[Home]]"],
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.list).toBe("[[Focus]]");
+      expect(result.data).not.toHaveProperty("lists");
+    }
+  });
+
+  it("leaves list absent when neither field is present", () => {
+    const result = taskFrontmatter.safeParse({
+      kind: "[[tasks]]",
+      created: "2026-10-19",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data).not.toHaveProperty("list");
+    }
+  });
+
+  it("reads an empty list value as null", () => {
+    const result = taskFrontmatter.safeParse({
+      kind: "[[tasks]]",
+      created: "2026-10-19",
+      list: null,
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.list).toBeNull();
+    }
+  });
+
+  it("rejects an empty string list", () => {
+    const result = taskFrontmatter.safeParse({
+      kind: "[[tasks]]",
+      created: "2026-10-19",
+      list: "",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a block under list", () => {
+    const result = taskFrontmatter.safeParse({
+      kind: "[[tasks]]",
+      created: "2026-10-19",
+      list: ["[[Focus]]"],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("keeps an explicit empty list over a legacy lists", () => {
+    const result = taskFrontmatter.safeParse({
+      kind: "[[tasks]]",
+      created: "2026-10-19",
+      list: null,
+      lists: ["[[Focus]]"],
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.list).toBeNull();
+      expect(result.data).not.toHaveProperty("lists");
+    }
+  });
+
+  it("rejects a malformed legacy lists", () => {
+    const result = taskFrontmatter.safeParse({
+      kind: "[[tasks]]",
+      created: "2026-10-19",
+      lists: [{}],
+    });
+    expect(result.success).toBe(false);
+  });
+
   it("wraps a bare recurrence previous value", () => {
     const result = taskFrontmatter.safeParse({
       kind: "[[tasks]]",
@@ -444,6 +548,23 @@ describe("validateNote", () => {
     );
     expect(bare.errors).toBeNull();
     expect(bare.data?.kind).toBe("[[tasks]]");
+  });
+
+  it("resolves a legacy lists through a note's text", () => {
+    const text = [
+      "---",
+      'kind: "[[tasks]]"',
+      "created: 2026-10-19",
+      "lists:",
+      '  - "[[Focus]]"',
+      '  - "[[Home]]"',
+      "---",
+      "",
+    ].join("\n");
+    const parsed = validateNote("water plants.md", text, taskFrontmatter);
+    expect(parsed.errors).toBeNull();
+    expect(parsed.data?.list).toBe("[[Focus]]");
+    expect(parsed.data).not.toHaveProperty("lists");
   });
 
   it("returns data on a valid note and errors on an invalid one", () => {

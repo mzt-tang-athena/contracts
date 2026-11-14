@@ -15,7 +15,7 @@ export type ValidatedNote<S extends z.ZodType> = {
  * returning the note, so callers can render or migrate broken notes
  * instead of crashing on them.
  */
-export function validateNote<S extends z.ZodObject>(
+export function validateNote<S extends z.ZodType>(
   fileName: string,
   text: string,
   schema: S,
