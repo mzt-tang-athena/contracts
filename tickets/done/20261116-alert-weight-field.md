@@ -3,7 +3,7 @@ title: Read alert weight on the task note
 created: 2026-11-16
 priority: high
 assignee: opencode
-pr:
+pr: 19
 depends: []
 ---
 
@@ -43,16 +43,35 @@ Tests:
 
 ## Acceptance
 
-- [ ] `taskFrontmatter` always outputs an `alert weight` of `harsh` or
+- [x] `taskFrontmatter` always outputs an `alert weight` of `harsh` or
       `quiet`.
-- [ ] Absent, null and an unreadable value read `harsh`, and the note
+- [x] Absent, null and an unreadable value read `harsh`, and the note
       stays valid.
-- [ ] `taskWarnings` names each unreadable value and its harsh fallback.
-- [ ] `alert weight: quiet` survives the note text round trip.
-- [ ] `npm test`, `npm run typecheck`, `npm run build`,
+- [x] `taskWarnings` names each unreadable value and its harsh fallback.
+- [x] `alert weight: quiet` survives the note text round trip.
+- [x] `npm test`, `npm run typecheck`, `npm run build`,
       `npm run check:package` and `make lint` pass.
-- [ ] `VOCABULARY.md` describes the field and its warning.
+- [x] `VOCABULARY.md` describes the field and its warning.
 
 ## Outcome
 
-(filled in before moving to done/)
+Shipped on 2026-11-16.
+
+- `taskFrontmatter` reads the spaced key through
+  `z.enum(alertWeights).default("harsh").catch("harsh")`. The default
+  covers an absent key and the catch covers null and every unreadable
+  value, so the output is always an `AlertWeight`. Its input type stays
+  optional.
+- `taskWarnings` reads the raw frontmatter values, not the parsed data,
+  because the parsed data already lost the bad value. It names one value
+  per message. A test on `z.input` and a typed output value proves the
+  type shape.
+- The note text path reads the spaced key, and `alert weight: quiet`
+  parses as `quiet`.
+- `npm test` passes 107 schema tests. Typecheck, build, `check:package`
+  and `make lint` pass. The built package returned the expected weight
+  and warning for live `quiet` and `loud` objects.
+- The decision and its trade-off live in the monkey-tasks ADR, so this
+  repo adds no ADR of its own.
+
+The app half is monkey-tasks ticket `20261111-alert-weight-schema`.
