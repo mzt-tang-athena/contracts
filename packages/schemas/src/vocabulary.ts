@@ -119,9 +119,9 @@ export const taskFrontmatter = z
     recurrence: recurrenceRule.nullish(),
     "recurrence previous": wikilink.nullish(),
     /**
-     * How hard this task's alerts ring. An absent, empty or unreadable
-     * value reads `harsh`, so a typo never silences an alert. The
-     * fallback is reported by `taskWarnings`.
+     * How hard this task's alerts ring. An absent or empty value reads
+     * `harsh` with no warning. An unreadable value also reads `harsh`,
+     * and `taskWarnings` names it. A typo never silences an alert.
      */
     "alert weight": z.enum(alertWeights).default("harsh").catch("harsh"),
     /** The one list this task belongs to; absent means Main. */
