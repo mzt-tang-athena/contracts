@@ -42,9 +42,10 @@ An old `lists` property reads its first link. It is validated, then
 dropped; writers store `list`.
 
 `alert weight` decides delivery only. A cue writes `quiet`; a need
-writes nothing, because absent means `harsh`. An empty or unreadable
-value also reads `harsh`, so a typo never makes an alert silent. The
-schema reports a warning for such a value. A warning is not an error:
+writes nothing, because absent means `harsh`. An empty property means
+the same as an absent one, and any other value also reads `harsh`, so
+a typo never makes an alert silent. The schema reports a warning for
+that other value, and not for an empty one. A warning is not an error:
 the note stays valid, its row stays, and the app can name the value to
 fix. An error still hides the row.
 
