@@ -35,10 +35,18 @@ body is optional free text, usually empty.
 | `due` | date or datetime | unscheduled | the day the task matters |
 | `reminders` | datetimes | silent | when the phone buzzes; several allowed |
 | `recurrence` | RRULE string | one-off | iCalendar recurrence for `due` |
+| `alert weight` | `harsh` or `quiet` | harsh | how hard this task's alerts ring |
 | `list` | wikilink | Main | the one list this task belongs to |
 
 An old `lists` property reads its first link. It is validated, then
 dropped; writers store `list`.
+
+`alert weight` decides delivery only. A cue writes `quiet`; a need
+writes nothing, because absent means `harsh`. An empty or unreadable
+value also reads `harsh`, so a typo never makes an alert silent. The
+schema reports a warning for such a value. A warning is not an error:
+the note stays valid, its row stays, and the app can name the value to
+fix. An error still hides the row.
 
 Derived state: done means `completed` is present. Tasks carry no
 `status` property.

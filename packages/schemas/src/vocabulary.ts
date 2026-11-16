@@ -74,6 +74,13 @@ export const recurrenceRule = z
 export type RecurrenceRule = z.infer<typeof recurrenceRule>;
 
 /**
+ * How hard a task's alerts ring. `harsh` is a need: it rings and is
+ * hard to miss. `quiet` is a cue: it is silent and easy to clear.
+ */
+export const alertWeights = ["harsh", "quiet"] as const;
+export type AlertWeight = (typeof alertWeights)[number];
+
+/**
  * Deed status. Canonical storage is the quoted wikilink form. Bare
  * values ("backlog") exist in older notes and are tolerated by wrapping
  * them; the app's write path and ticket 0005 canonicalize them.
@@ -111,6 +118,12 @@ export const taskFrontmatter = z
     reminders: optionalList(isoDatetime),
     recurrence: recurrenceRule.nullish(),
     "recurrence previous": wikilink.nullish(),
+    /**
+     * How hard this task's alerts ring. An absent, empty or unreadable
+     * value reads `harsh`, so a typo never silences an alert. The
+     * fallback is reported by `taskWarnings`.
+     */
+    "alert weight": z.enum(alertWeights).default("harsh").catch("harsh"),
     /** The one list this task belongs to; absent means Main. */
     list: wikilink.nullish(),
     /** Legacy. Validated so broken notes still fail, then dropped. */
@@ -124,6 +137,22 @@ export const taskFrontmatter = z
       : rest;
   });
 export type TaskFrontmatter = z.infer<typeof taskFrontmatter>;
+
+/**
+ * One message per task frontmatter value the schema reads through a
+ * fallback. Today that is `alert weight` alone. A warning means the
+ * note is valid and its row stays; it says which value was replaced.
+ */
+export function taskWarnings(values: Record<string, unknown>): string[] {
+  const warnings: string[] = [];
+  const weight = values["alert weight"];
+  if (weight != null && !alertWeights.some((value) => value === weight)) {
+    warnings.push(
+      `alert weight ${JSON.stringify(weight)} is not harsh or quiet, so it rings harsh`,
+    );
+  }
+  return warnings;
+}
 
 /** Frontmatter of a deed note, matching the existing vault shape. */
 export const deedFrontmatter = z
