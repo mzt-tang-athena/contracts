@@ -1,12 +1,15 @@
 import { describe, expect, it } from "vitest";
+import { z } from "zod";
 import {
   deedFrontmatter,
   deedIsDone,
   listFrontmatter,
   taskFrontmatter,
   taskIsDone,
+  taskWarnings,
   validateNote,
   wikilinkTarget,
+  type AlertWeight,
 } from "../src/index.js";
 import { parseFrontmatter } from "../src/frontmatter.js";
 
@@ -287,6 +290,93 @@ describe("taskFrontmatter", () => {
       created: "19-10-2026",
     });
     expect(result.success).toBe(false);
+  });
+});
+
+describe("alert weight", () => {
+  const minimal = { kind: "[[tasks]]", created: "2026-10-19" };
+
+  it("reads an absent value as harsh", () => {
+    expect(taskFrontmatter.parse(minimal)["alert weight"]).toBe("harsh");
+  });
+
+  it("keeps the input optional and the output an AlertWeight", () => {
+    const input: z.input<typeof taskFrontmatter> = minimal;
+    const weight: AlertWeight = taskFrontmatter.parse(input)["alert weight"];
+    expect(weight).toBe("harsh");
+  });
+
+  it("reads each stored value", () => {
+    for (const weight of ["harsh", "quiet"] as const) {
+      const result = taskFrontmatter.safeParse({
+        ...minimal,
+        "alert weight": weight,
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data["alert weight"]).toBe(weight);
+      }
+    }
+  });
+
+  it("reads a null value as harsh", () => {
+    const result = taskFrontmatter.safeParse({
+      ...minimal,
+      "alert weight": null,
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data["alert weight"]).toBe("harsh");
+    }
+  });
+
+  it("reads an unreadable value as harsh and keeps the note valid", () => {
+    for (const weight of ["loud", "Quiet", 5, ""]) {
+      const result = taskFrontmatter.safeParse({
+        ...minimal,
+        "alert weight": weight,
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data["alert weight"]).toBe("harsh");
+      }
+    }
+  });
+
+  it("reads the spaced key from a note's text", () => {
+    const text = [
+      "---",
+      'kind: "[[tasks]]"',
+      "created: 2026-10-19",
+      "alert weight: quiet",
+      "---",
+      "",
+    ].join("\n");
+    const parsed = validateNote("water the fern.md", text, taskFrontmatter);
+    expect(parsed.errors).toBeNull();
+    expect(parsed.data?.["alert weight"]).toBe("quiet");
+  });
+
+  it("names every value it reads through a fallback", () => {
+    expect(taskWarnings({ "alert weight": "loud" })).toEqual([
+      'alert weight "loud" is not harsh or quiet, so it rings harsh',
+    ]);
+    expect(taskWarnings({ "alert weight": "Quiet" })).toEqual([
+      'alert weight "Quiet" is not harsh or quiet, so it rings harsh',
+    ]);
+    expect(taskWarnings({ "alert weight": 5 })).toEqual([
+      "alert weight 5 is not harsh or quiet, so it rings harsh",
+    ]);
+    expect(taskWarnings({ "alert weight": "" })).toEqual([
+      'alert weight "" is not harsh or quiet, so it rings harsh',
+    ]);
+  });
+
+  it("warns for no value it reads directly", () => {
+    expect(taskWarnings({})).toEqual([]);
+    expect(taskWarnings({ "alert weight": null })).toEqual([]);
+    expect(taskWarnings({ "alert weight": "harsh" })).toEqual([]);
+    expect(taskWarnings({ "alert weight": "quiet" })).toEqual([]);
   });
 });
 
