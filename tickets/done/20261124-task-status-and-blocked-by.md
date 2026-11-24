@@ -3,7 +3,7 @@ title: A task carries status and blocked by
 created: 2026-11-24
 priority: normal
 assignee: opencode
-pr:
+pr: 23
 depends: []
 ---
 
@@ -71,15 +71,26 @@ in `Deeds/` must still validate.
 
 ## Acceptance
 
-- [ ] `taskFrontmatter` reads every deed shape in the fixtures.
-- [ ] A deed note parses with kind `"[[tasks]]"` and its status.
-- [ ] `after` never shows up in `blocked by`.
-- [ ] A done and `completed` mismatch warns, and the note stays valid.
-- [ ] The live vault sweep passes against `taskFrontmatter`.
-- [ ] The package no longer exports `deedFrontmatter` or `deedIsDone`.
-- [ ] `VOCABULARY.md` matches the schema.
-- [ ] The package version is `0.3.0`.
+- [x] `taskFrontmatter` reads every deed shape in the fixtures.
+- [x] A deed note parses with kind `"[[tasks]]"` and its status.
+- [x] `after` never shows up in `blocked by`.
+- [x] A done and `completed` mismatch warns, and the note stays valid.
+- [x] The live vault sweep passes against `taskFrontmatter`.
+- [x] The package no longer exports `deedFrontmatter` or `deedIsDone`.
+- [x] `VOCABULARY.md` matches the schema.
+- [x] The package version is `0.3.0`.
 
 ## Outcome
 
-(filled in before moving to done/)
+`taskFrontmatter` reads a deed note as a task with a status. It accepts
+`kind: "[[deeds]]"` and bare `deeds`, keeps `parent deed`, `categories`,
+`types` and `after` untouched, and takes `status` and `blocked by`.
+`created` is optional on a deed note and required on a task note.
+`taskWarnings` names both done mismatches.
+
+`deedFrontmatter`, `DeedFrontmatter` and `deedIsDone` are gone. The
+package is `0.3.0`. The vault sweep covers `Tasks/` and `Deeds/`, and the
+live vault passes: 15 task notes and 72 deed notes.
+
+Publishing needs a `v0.3.0` tag on the merge commit. monkey-tasks stays on
+submodule 9f27577 until its own ticket moves.
