@@ -2,7 +2,7 @@
 title: A task carries status and blocked by
 created: 2026-11-24
 priority: normal
-assignee:
+assignee: opencode
 pr:
 depends: []
 ---
