@@ -1,8 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import {
-  deedFrontmatter,
-  deedIsDone,
   listFrontmatter,
   taskFrontmatter,
   taskIsDone,
@@ -10,8 +8,14 @@ import {
   validateNote,
   wikilinkTarget,
   type AlertWeight,
+  type TaskStatus,
 } from "../src/index.js";
 import { parseFrontmatter } from "../src/frontmatter.js";
+
+/** A note's text from its frontmatter lines, as Obsidian stores it. */
+function note(...lines: string[]): string {
+  return ["---", ...lines, "---", ""].join("\n");
+}
 
 describe("taskFrontmatter", () => {
   it("accepts a minimal task note", () => {
@@ -45,7 +49,7 @@ describe("taskFrontmatter", () => {
   });
 
   it("rejects another kind in either shape", () => {
-    for (const kind of ["deeds", "[[deeds]]", "lists", "[[list]]", ""]) {
+    for (const kind of ["lists", "[[lists]]", "[[list]]", "notes", "[[notes]]", ""]) {
       const result = taskFrontmatter.safeParse({
         kind,
         created: "2026-10-19",
@@ -291,6 +295,110 @@ describe("taskFrontmatter", () => {
     });
     expect(result.success).toBe(false);
   });
+
+  it("rejects a task note with no created date", () => {
+    expect(taskFrontmatter.safeParse({ kind: "[[tasks]]" }).success).toBe(false);
+    expect(
+      taskFrontmatter.safeParse({ kind: "[[tasks]]", created: null }).success,
+    ).toBe(false);
+  });
+
+  it("reads each of the five statuses", () => {
+    for (const name of ["backlog", "active", "done", "dropped", "someday"] as const) {
+      const result = taskFrontmatter.safeParse({
+        kind: "[[tasks]]",
+        created: "2026-10-19",
+        status: `[[${name}]]`,
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.status).toBe(`[[${name}]]`);
+      }
+    }
+  });
+
+  it("keeps status optional and typed as a TaskStatus", () => {
+    const input: z.input<typeof taskFrontmatter> = {
+      kind: "tasks",
+      created: "2026-10-19",
+      status: "backlog",
+    };
+    const status: TaskStatus | null | undefined = taskFrontmatter.parse(input).status;
+    expect(status).toBe("[[backlog]]");
+  });
+
+  it("reads a bare status value and wraps it", () => {
+    const result = taskFrontmatter.safeParse({
+      kind: "[[tasks]]",
+      created: "2026-10-19",
+      status: "backlog",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.status).toBe("[[backlog]]");
+    }
+  });
+
+  it("reads an empty status property as null", () => {
+    const result = taskFrontmatter.safeParse({
+      kind: "[[tasks]]",
+      created: "2026-10-19",
+      status: null,
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.status).toBeNull();
+    }
+  });
+
+  it("rejects an unknown status", () => {
+    const result = taskFrontmatter.safeParse({
+      kind: "[[tasks]]",
+      created: "2026-10-19",
+      status: "[[paused]]",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("reads blocked by from one link or from two", () => {
+    const one = taskFrontmatter.parse({
+      kind: "[[tasks]]",
+      created: "2026-10-19",
+      "blocked by": "[[gather the quarterly notes]]",
+    });
+    expect(one["blocked by"]).toEqual(["[[gather the quarterly notes]]"]);
+
+    const two = taskFrontmatter.parse({
+      kind: "[[tasks]]",
+      created: "2026-10-19",
+      "blocked by": ["[[gather the quarterly notes]]", "[[file the receipts]]"],
+    });
+    expect(two["blocked by"]).toEqual([
+      "[[gather the quarterly notes]]",
+      "[[file the receipts]]",
+    ]);
+  });
+
+  it("keeps after as legacy and never reads it as blocked by", () => {
+    const parsed = taskFrontmatter.parse({
+      kind: "[[tasks]]",
+      created: "2026-10-19",
+      after: "[[create a recurring checklist template]]",
+    });
+    expect(parsed.after).toEqual(["[[create a recurring checklist template]]"]);
+    expect(parsed["blocked by"]).toBeUndefined();
+  });
+
+  it("rejects a broken after or a broken blocked by", () => {
+    for (const key of ["after", "blocked by"]) {
+      const result = taskFrontmatter.safeParse({
+        kind: "[[tasks]]",
+        created: "2026-10-19",
+        [key]: [{}],
+      });
+      expect(result.success).toBe(false);
+    }
+  });
 });
 
 describe("alert weight", () => {
@@ -393,153 +501,201 @@ describe("taskIsDone", () => {
   });
 });
 
-describe("deedFrontmatter", () => {
-  it("accepts an existing deed note as it is stored today", () => {
-    const result = deedFrontmatter.safeParse({
-      kind: "[[deeds]]",
-      status: "[[backlog]]",
-      created: "2026-09-07",
-      categories: ["[[digital]]"],
-      after: null,
-    });
-    expect(result.success).toBe(true);
-  });
+describe("taskWarnings on a done mismatch", () => {
+  const minimal = { kind: "[[tasks]]", created: "2026-10-19" };
 
-  it("reads a bare kind and returns the link form", () => {
-    const result = deedFrontmatter.safeParse({
-      kind: "deeds",
-      status: "[[active]]",
-    });
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.kind).toBe("[[deeds]]");
-    }
-  });
-
-  it("reads the link kind unchanged", () => {
-    const result = deedFrontmatter.safeParse({
-      kind: "[[deeds]]",
-      status: "[[active]]",
-    });
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.kind).toBe("[[deeds]]");
-    }
-  });
-
-  it("rejects another kind in either shape", () => {
-    for (const kind of ["tasks", "[[tasks]]", "lists", "[[list]]", ""]) {
-      const result = deedFrontmatter.safeParse({ kind, status: "[[active]]" });
-      expect(result.success).toBe(false);
-    }
-  });
-
-  it("accepts empty list properties from the template", () => {
-    const result = deedFrontmatter.safeParse({
-      kind: "[[deeds]]",
-      status: "[[backlog]]",
-      categories: null,
-      types: null,
-      "do after": null,
-    });
-    // "do after" is the template's stale key name; the loose schema
-    // preserves it. The rename is ticket 0005's job.
-    expect(result.success).toBe(true);
-  });
-
-  it("accepts both after and blocked by until the 0005 rename", () => {
-    for (const key of ["after", "blocked by"]) {
-      const result = deedFrontmatter.safeParse({
-        kind: "[[deeds]]",
-        status: "[[active]]",
-        [key]: ["[[gather quarterly notes]]"],
-      });
-      expect(result.success).toBe(true);
-    }
-  });
-
-  it("tolerates a bare status from older notes and wraps it", () => {
-    const result = deedFrontmatter.safeParse({
-      kind: "[[deeds]]",
-      status: "backlog",
-    });
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.status).toBe("[[backlog]]");
-    }
-  });
-
-  it("normalizes a single after value into a list", () => {
-    const result = deedFrontmatter.safeParse({
-      kind: "[[deeds]]",
-      status: "[[active]]",
-      after: "[[create a recurring checklist template]]",
-    });
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.after).toEqual(["[[create a recurring checklist template]]"]);
-    }
-  });
-
-  it("wraps a bare parent deed value", () => {
-    const result = deedFrontmatter.safeParse({
-      kind: "[[deeds]]",
-      "parent deed": "meal-prep-system",
-    });
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data["parent deed"]).toBe("[[meal-prep-system]]");
-    }
-  });
-
-  it("accepts a sub-deed with no status and a parent deed", () => {
-    const result = deedFrontmatter.safeParse({
-      kind: "[[deeds]]",
-      "parent deed": "[[tower-defence-game]]",
-    });
-    expect(result.success).toBe(true);
-  });
-
-  it("rejects an unknown status", () => {
-    const result = deedFrontmatter.safeParse({
-      kind: "[[deeds]]",
-      status: "[[paused]]",
-    });
-    expect(result.success).toBe(false);
-  });
-
-  it("derives done from status", () => {
-    const done = deedFrontmatter.parse({
-      kind: "[[deeds]]",
+  it("warns nothing when status done has a completed date", () => {
+    const result = taskFrontmatter.safeParse({
+      ...minimal,
       status: "[[done]]",
-      completed: "2026-10-19",
+      completed: "2026-10-20",
     });
-    const active = deedFrontmatter.parse({
-      kind: "[[deeds]]",
-      status: "[[active]]",
-    });
-    expect(deedIsDone(done)).toBe(true);
-    expect(deedIsDone(active)).toBe(false);
-  });
-
-  it("accepts a completion date with or without a time", () => {
-    for (const completed of ["2026-11-11", "2026-11-11T18:08"]) {
-      const result = deedFrontmatter.safeParse({
-        kind: "[[deeds]]",
-        status: "[[done]]",
-        completed,
-      });
-      expect(result.success).toBe(true);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(taskWarnings(result.data)).toEqual([]);
     }
   });
 
-  it("rejects a completion that is not a date or a datetime", () => {
-    const result = deedFrontmatter.safeParse({
-      kind: "[[deeds]]",
-      status: "[[done]]",
-      completed: "yesterday",
+  it("warns when status done has no completed date", () => {
+    const result = taskFrontmatter.safeParse({ ...minimal, status: "[[done]]" });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(taskWarnings(result.data)).toEqual([
+        "status [[done]] has no completed date",
+      ]);
+    }
+  });
+
+  it("warns when a completed date meets another status", () => {
+    const result = taskFrontmatter.safeParse({
+      ...minimal,
+      status: "[[active]]",
+      completed: "2026-10-20",
     });
-    expect(result.success).toBe(false);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(taskWarnings(result.data)).toEqual([
+        "completed date with status [[active]] is not done",
+      ]);
+    }
+  });
+
+  it("reads a bare status from a note's text", () => {
+    const parsed = validateNote(
+      "build dashboard.md",
+      note('kind: "[[deeds]]"', "status: done"),
+      taskFrontmatter,
+    );
+    expect(parsed.errors).toBeNull();
+    expect(taskWarnings(parsed.note.values)).toEqual([
+      "status [[done]] has no completed date",
+    ]);
+  });
+
+  it("keeps the note valid and not done on a mismatch", () => {
+    const task = taskFrontmatter.parse({ ...minimal, status: "[[done]]" });
+    expect(taskIsDone(task)).toBe(false);
+  });
+});
+
+describe("deed notes read as tasks", () => {
+  it("reads a deed stored today as a task with its status", () => {
+    const parsed = validateNote(
+      "audit journal contents.md",
+      note(
+        'kind: "[[deeds]]"',
+        'parent deed: "[[consolidate-old-journal-entries]]"',
+        'status: "[[backlog]]"',
+        "created: 2026-09-12",
+      ),
+      taskFrontmatter,
+    );
+    expect(parsed.errors).toBeNull();
+    expect(parsed.data?.kind).toBe("[[tasks]]");
+    expect(parsed.data?.status).toBe("[[backlog]]");
+    expect(parsed.data?.["parent deed"]).toBe("[[consolidate-old-journal-entries]]");
+  });
+
+  it("reads a bare kind as the task kind", () => {
+    const parsed = validateNote(
+      "brainstorm.md",
+      note("kind: deeds", 'status: "[[someday]]"'),
+      taskFrontmatter,
+    );
+    expect(parsed.errors).toBeNull();
+    expect(parsed.data?.kind).toBe("[[tasks]]");
+    expect(parsed.data?.status).toBe("[[someday]]");
+  });
+
+  it("reads a bare status value and wraps it", () => {
+    const parsed = validateNote(
+      "build dashboard.md",
+      note('kind: "[[deeds]]"', "status: backlog", "created: 2026-09-12"),
+      taskFrontmatter,
+    );
+    expect(parsed.errors).toBeNull();
+    expect(parsed.data?.status).toBe("[[backlog]]");
+  });
+
+  it("reads a deed with no status as a task with none", () => {
+    const parsed = validateNote(
+      "brainstorm.md",
+      note('kind: "[[deeds]]"', 'parent deed: "[[tower-defence-game]]"'),
+      taskFrontmatter,
+    );
+    expect(parsed.errors).toBeNull();
+    expect(parsed.data?.status).toBeUndefined();
+    expect(parsed.data?.["parent deed"]).toBe("[[tower-defence-game]]");
+  });
+
+  it("accepts a deed with no created date", () => {
+    const parsed = validateNote(
+      "build a trading agent workflow and app.md",
+      note('kind: "[[deeds]]"', 'status: "[[backlog]]"'),
+      taskFrontmatter,
+    );
+    expect(parsed.errors).toBeNull();
+  });
+
+  it("keeps categories, types and after untouched", () => {
+    const parsed = validateNote(
+      "build a trading agent workflow and app.md",
+      note(
+        'kind: "[[deeds]]"',
+        "categories:",
+        '  - "[[Waypoints/digital|digital]]"',
+        "types:",
+        '  - "[[apps]]"',
+        'status: "[[backlog]]"',
+        'after: "[[create a recurring checklist template]]"',
+      ),
+      taskFrontmatter,
+    );
+    expect(parsed.errors).toBeNull();
+    expect(parsed.data?.categories).toEqual(["[[Waypoints/digital|digital]]"]);
+    expect(parsed.data?.types).toEqual(["[[apps]]"]);
+    expect(parsed.data?.after).toEqual([
+      "[[create a recurring checklist template]]",
+    ]);
+    expect(parsed.data?.["blocked by"]).toBeUndefined();
+  });
+
+  it("reads after alone with an empty blocked by", () => {
+    const parsed = validateNote(
+      "brainstorm.md",
+      note('kind: "[[deeds]]"', "after:", "created: 2026-09-12"),
+      taskFrontmatter,
+    );
+    expect(parsed.errors).toBeNull();
+    expect(parsed.data?.after).toBeNull();
+    expect(parsed.data?.["blocked by"]).toBeUndefined();
+  });
+
+  it("reads blocked by from two links", () => {
+    const parsed = validateNote(
+      "china proof tunnel.md",
+      note(
+        'kind: "[[deeds]]"',
+        'status: "[[active]]"',
+        "created: 2026-02-03",
+        "blocked by:",
+        '  - "[[finish the tunnel research]]"',
+        '  - "[[pick a provider]]"',
+      ),
+      taskFrontmatter,
+    );
+    expect(parsed.errors).toBeNull();
+    expect(parsed.data?.["blocked by"]).toEqual([
+      "[[finish the tunnel research]]",
+      "[[pick a provider]]",
+    ]);
+  });
+
+  it("rejects a deed with a broken after", () => {
+    const parsed = validateNote(
+      "broken.md",
+      note('kind: "[[deeds]]"', 'after: "[[]]"'),
+      taskFrontmatter,
+    );
+    expect(parsed.errors).not.toBeNull();
+  });
+
+  it("still needs a created date on a task note", () => {
+    const parsed = validateNote(
+      "stray.md",
+      note('kind: "[[tasks]]"'),
+      taskFrontmatter,
+    );
+    expect(parsed.errors).not.toBeNull();
+  });
+
+  it("rejects the list kind", () => {
+    const parsed = validateNote(
+      "groceries.md",
+      note('kind: "[[lists]]"', "created: 2026-10-19"),
+      taskFrontmatter,
+    );
+    expect(parsed.errors).not.toBeNull();
   });
 });
 
