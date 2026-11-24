@@ -1,25 +1,29 @@
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { deedFrontmatter, validateNote } from "../src/index.js";
+import { taskFrontmatter, validateNote } from "../src/index.js";
 
 const vault = "/home/monkey/vault/main";
 
 describe.skipIf(!existsSync(vault))("live vault sweep", () => {
-  it("every real deed note validates against the deed schema", () => {
-    const files = readdirSync(join(vault, "Deeds")).filter((f) => f.endsWith(".md"));
-    expect(files.length).toBeGreaterThan(0);
+  it("every real task and deed note validates against the task schema", () => {
     const failures: string[] = [];
-    for (const file of files) {
-      const text = readFileSync(join(vault, "Deeds", file), "utf8");
-      const result = validateNote(file, text, deedFrontmatter);
-      if (result.errors) {
-        failures.push(
-          `${file}: ${result.errors.issues.map((i) => `${i.path.join(".")} ${i.message}`).join("; ")}`,
-        );
+    let notes = 0;
+    for (const folder of ["Tasks", "Deeds"]) {
+      const dir = join(vault, folder);
+      const files = readdirSync(dir).filter((f) => f.endsWith(".md"));
+      notes += files.length;
+      for (const file of files) {
+        const text = readFileSync(join(dir, file), "utf8");
+        const result = validateNote(file, text, taskFrontmatter);
+        if (result.errors) {
+          failures.push(
+            `${folder}/${file}: ${result.errors.issues.map((i) => `${i.path.join(".")} ${i.message}`).join("; ")}`,
+          );
+        }
       }
     }
+    expect(notes).toBeGreaterThan(0);
     expect(failures).toEqual([]);
   });
 });
-

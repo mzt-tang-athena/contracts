@@ -6,9 +6,10 @@ import { z } from "zod";
  * Notes store wikilink-valued properties in their quoted form, for
  * example `status: "[[active]]"`. Dates are `YYYY-MM-DD`; datetimes are
  * `YYYY-MM-DDTHH:MM`, seconds optional. A `kind` reads as a bare value
- * or as its link form, and always parses to the link form. Everything
- * unknown is preserved, never rejected, so notes keep whatever
- * frontmatter Obsidian plugins add.
+ * or as its link form, and parses to a link. A task note parses the
+ * deed kind as the task kind, so clients see one kind for work.
+ * Everything unknown is preserved, never rejected, so notes keep
+ * whatever frontmatter Obsidian plugins add.
  */
 
 /** A wikilink-valued frontmatter value, for example "[[digital]]". */
@@ -27,15 +28,6 @@ export type Wikilink = z.infer<typeof wikilink>;
 /** The target inside a wikilink: "[[digital]]" -> "digital". */
 export function wikilinkTarget(link: Wikilink): string {
   return link.slice(2, -2);
-}
-
-/**
- * A note's kind marker. The bare value ("tasks") and the link form
- * ("[[tasks]]") both read; the parsed value is always the link form,
- * which is what every writer stores.
- */
-function kindLink(name: "tasks" | "deeds" | "lists") {
-  return wikilink.pipe(z.literal(`[[${name}]]`));
 }
 
 /** Date only: YYYY-MM-DD. */
@@ -81,20 +73,20 @@ export const alertWeights = ["harsh", "quiet"] as const;
 export type AlertWeight = (typeof alertWeights)[number];
 
 /**
- * Deed status. Canonical storage is the quoted wikilink form. Bare
- * values ("backlog") exist in older notes and are tolerated by wrapping
- * them; the app's write path and ticket 0005 canonicalize them.
+ * Task status. A task with a status is a deed. Canonical storage is
+ * the quoted wikilink form. Bare values ("backlog") exist in older
+ * notes and are wrapped; the app's write path canonicalizes them.
  */
 const statusValues = ["backlog", "active", "done", "dropped", "someday"] as const;
 
-export const deedStatus = z.preprocess(
+export const taskStatus = z.preprocess(
   (raw) =>
     typeof raw === "string" && (statusValues as readonly string[]).includes(raw)
       ? `[[${raw}]]`
       : raw,
   z.enum(["[[backlog]]", "[[active]]", "[[done]]", "[[dropped]]", "[[someday]]"]).nullish(),
 );
-export type DeedStatus = NonNullable<z.infer<typeof deedStatus>>;
+export type TaskStatus = NonNullable<z.infer<typeof taskStatus>>;
 
 const optionalList = <T extends z.ZodTypeAny>(value: T) =>
   // Single values exist in the vault; normalize them into one-item lists.
@@ -103,15 +95,23 @@ const optionalList = <T extends z.ZodTypeAny>(value: T) =>
     z.array(value).nullish(),
   ); // empty properties arrive as null
 
-/** Frontmatter of a task note, per ticket 0004. */
-export const taskFrontmatter = z
+/**
+ * Frontmatter of a task note, per ticket 0004 and ADR
+ * 20261124-deeds-are-tasks-with-a-status. A deed note reads here too:
+ * its kind parses to `"[[tasks]]"`, and it may lack `created`.
+ * `parent deed`, `categories` and `types` are not task fields, so the
+ * loose object keeps them untouched. `after` is validated, kept in the
+ * output, and never read as `blocked by`, because most of its links mean
+ * order.
+ */
+const taskFields = z
   .object({
-    kind: kindLink("tasks"),
+    kind: wikilink.pipe(z.enum(["[[tasks]]", "[[deeds]]"])),
     title: z.string().min(1).nullish(),
     /** Manual position inside its tab; missing sorts after ordered. */
     order: z.coerce.number().int().nullish(),
     /** New notes carry the minute; older ones hold the date alone. */
-    created: dateOrDatetime,
+    created: dateOrDatetime.nullish(),
     /** New notes carry the minute; older ones hold the date alone. */
     completed: dateOrDatetime.nullish(),
     due: dateOrDatetime.nullish(),
@@ -128,20 +128,46 @@ export const taskFrontmatter = z
     list: wikilink.nullish(),
     /** Legacy. Validated so broken notes still fail, then dropped. */
     lists: optionalList(wikilink),
+    /** A task with a status is a deed; absent means a plain task. */
+    status: taskStatus,
+    /** Each linked note must finish before this task can start. */
+    "blocked by": optionalList(wikilink),
+    /** Legacy order links, read as a list and kept in the output. */
+    after: optionalList(wikilink),
   })
-  .loose()
-  .transform(({ lists, ...rest }) => {
+  .loose();
+
+export const taskFrontmatter = taskFields
+  .superRefine((values, ctx) => {
+    if (values.kind === "[[tasks]]" && values.created == null) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["created"],
+        message: "a task note needs a created date",
+      });
+    }
+  })
+  .transform((values): z.output<typeof taskFields> & { kind: "[[tasks]]" } => {
+    const { lists, ...rest } = values;
     const inherited = lists?.[0];
-    return rest.list === undefined && inherited !== undefined
-      ? { ...rest, list: inherited }
-      : rest;
+    const next =
+      rest.list === undefined && inherited !== undefined
+        ? { ...rest, list: inherited }
+        : rest;
+    return { ...next, kind: "[[tasks]]" };
   });
 export type TaskFrontmatter = z.infer<typeof taskFrontmatter>;
 
+function rawStatus(raw: unknown): TaskStatus | null {
+  const parsed = taskStatus.safeParse(raw);
+  return parsed.success ? (parsed.data ?? null) : null;
+}
+
 /**
  * One message per task frontmatter value the schema reads through a
- * fallback. Today that is `alert weight` alone. A warning means the
- * note is valid and its row stays; it says which value was replaced.
+ * fallback, or that disagrees with another. A warning means the note is
+ * valid and its row stays; it says which value was replaced or what
+ * disagrees.
  */
 export function taskWarnings(values: Record<string, unknown>): string[] {
   const warnings: string[] = [];
@@ -151,32 +177,21 @@ export function taskWarnings(values: Record<string, unknown>): string[] {
       `alert weight ${JSON.stringify(weight)} is not harsh or quiet, so it rings harsh`,
     );
   }
+  const status = rawStatus(values.status);
+  const completed = values.completed;
+  if (status === "[[done]]" && completed == null) {
+    warnings.push("status [[done]] has no completed date");
+  }
+  if (status != null && status !== "[[done]]" && completed != null) {
+    warnings.push(`completed date with status ${status} is not done`);
+  }
   return warnings;
 }
-
-/** Frontmatter of a deed note, matching the existing vault shape. */
-export const deedFrontmatter = z
-  .object({
-    kind: kindLink("deeds"),
-    status: deedStatus,
-    "parent deed": wikilink.nullish(),
-    categories: optionalList(wikilink),
-    types: optionalList(wikilink), // deprecated; tolerated until 0005
-    after: optionalList(wikilink), // becomes "blocked by" in 0005
-    "blocked by": optionalList(wikilink),
-    created: isoDate.nullish(),
-    due: dateOrDatetime.nullish(),
-    reminders: optionalList(isoDatetime),
-    recurrence: recurrenceRule.nullish(),
-    completed: dateOrDatetime.nullish(),
-  })
-  .loose();
-export type DeedFrontmatter = z.infer<typeof deedFrontmatter>;
 
 /** Frontmatter of a list note, per ticket 0004. */
 export const listFrontmatter = z
   .object({
-    kind: kindLink("lists"),
+    kind: wikilink.pipe(z.literal("[[lists]]")),
     created: isoDate,
   })
   .loose();
@@ -185,12 +200,4 @@ export type ListFrontmatter = z.infer<typeof listFrontmatter>;
 /** A task is done exactly when its completed date is present. */
 export function taskIsDone(task: TaskFrontmatter): boolean {
   return task.completed != null && task.completed !== "";
-}
-
-/**
- * A deed is done through its status property; the completed date is
- * the timestamp of that moment. Absent status means not done.
- */
-export function deedIsDone(deed: DeedFrontmatter): boolean {
-  return deed.status === "[[done]]";
 }

@@ -16,7 +16,8 @@ Rules that hold for all note types:
 - Dates are `YYYY-MM-DD`. Datetimes are `YYYY-MM-DDTHH:MM`, seconds
   optional. No time zones; the phone's local time is the meaning.
 - An absent property means the documented default. Nothing is required
-  beyond `kind` and `created` on task and list notes.
+  beyond `kind` on a deed note, and `kind` and `created` on a task or
+  list note.
 - Properties the schemas do not know are preserved, never rejected, so
   notes keep whatever Obsidian plugins add.
 - Anything the app or a query needs lives in the note. Filesystem
@@ -29,7 +30,7 @@ body is optional free text, usually empty.
 
 | Property | Form | Default when absent | Meaning |
 |---|---|---|---|
-| `kind` | `"[[tasks]]"` | required | the note type marker |
+| `kind` | `"[[tasks]]"` or `"[[deeds]]"` | required | the note type marker; both read as `"[[tasks]]"` |
 | `created` | date | required | the day the task was created |
 | `completed` | date | open | present means done; the date is when |
 | `due` | date or datetime | unscheduled | the day the task matters |
@@ -37,6 +38,8 @@ body is optional free text, usually empty.
 | `recurrence` | RRULE string | one-off | iCalendar recurrence for `due` |
 | `alert weight` | `harsh` or `quiet` | harsh | how hard this task's alerts ring |
 | `list` | wikilink | Main | the one list this task belongs to |
+| `status` | `"[[backlog]]"`, `"[[active]]"`, `"[[done]]"`, `"[[dropped]]"`, `"[[someday]]"` | plain task | lifecycle stage; a task with a status is a deed |
+| `blocked by` | wikilinks | unblocked | each linked note must finish before this one starts |
 
 An old `lists` property reads its first link. It is validated, then
 dropped; writers store `list`.
@@ -49,44 +52,34 @@ that other value, and not for an empty one. A warning is not an error:
 the note stays valid, its row stays, and the app can name the value to
 fix. An error still hides the row.
 
-Derived state: done means `completed` is present. Tasks carry no
-`status` property.
+A status holds its quoted wikilink form. Bare values (`backlog`) exist
+in older notes and are wrapped on read.
 
-Deferred until a consumer exists: `cancelled`, `categories`, `after`,
-`updatedAt`, manual ordering inside a list, subtasks. See ticket 0004.
+An old `after` property holds order links. The reader checks it and
+keeps it in the output. It never reads it as `blocked by`. Most `after`
+links mean order. A vault tidy splits it later.
+
+Derived state: done means `completed` is present, for every task. A
+note whose `status` and `completed` disagree still reads. The schema
+warns about it. The app writes the two together.
+
+Deferred until a consumer exists: `cancelled`, `updatedAt`, manual
+ordering inside a list, subtasks. See ticket 0004.
 
 ## Deed notes
 
-One file per deed in `Deeds/`. Deeds are the longer, planned efforts,
-with a real lifecycle.
+A deed is a task with a status. The app reads a deed note with the task
+schema, so the vault has one note kind for work. Deeds live in `Deeds/`.
 
-| Property | Form | Default when absent | Meaning |
-|---|---|---|---|
-| `kind` | `"[[deeds]]"` | required | the note type marker |
-| `status` | `"[[backlog]]"`, `"[[active]]"`, `"[[done]]"`, `"[[dropped]]"`, `"[[someday]]"` | not tracked individually | lifecycle stage |
-| `parent deed` | wikilink | top-level | the deed this sub-deed belongs to |
-| `categories` | wikilinks | uncategorized | waypoint links; what part of life this benefits |
-| `types` | wikilinks | none | deprecated; tolerated until the 0005 migration |
-| `after` | wikilinks | unblocked | each linked note must finish first |
-| `created` | date | unknown | the day the deed was created |
-| `due` | date or datetime | unscheduled | when the deed matters |
-| `reminders` | datetimes | silent | when the phone buzzes; several allowed |
-| `recurrence` | RRULE string | one-off | iCalendar recurrence for `due` |
-| `completed` | date | not done | written when status reaches done |
+- A `kind` of `"[[deeds]]"` or a bare `deeds` parses to `"[[tasks]]"`.
+  The app writes the task kind on its next edit of a deed note.
+- A deed note may leave out `created`. A task note may not.
+- `parent deed`, `categories` and `types` are not task fields. The
+  reader does not read them, and keeps them untouched.
 
-Absent `status` is how sub-deeds work: they are tracked by their parent
-deed, not by a lifecycle of their own.
-
-Bare status values (`backlog` without brackets) exist in older notes.
-The schema tolerates them by wrapping; the canonical form is the quoted
-wikilink, and the migration in ticket 0005 rewrites the stragglers.
-
-Free-form properties observed on individual deeds (`repo`, `pursuit`,
-`estimate`, `tags`) are preserved as-is and not part of the vocabulary
-unless they spread.
-
-Derived state: done means `status` is `"[[done]]"`. The rename of
-`after` to `blocked by` is ticket 0005; both names parse until then.
+A deed with no status stays off the board and off Main. Free-form
+properties on individual deeds (`repo`, `pursuit`, `estimate`, `tags`)
+are kept as they are. See ADR `20261124-deeds-are-tasks-with-a-status`.
 
 ## List notes
 

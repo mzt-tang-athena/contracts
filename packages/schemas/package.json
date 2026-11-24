@@ -1,6 +1,6 @@
 {
   "name": "@mzt-tang-athena/schemas",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Notes vocabulary schemas for the monkey projects and athena services",
   "type": "module",
   "main": "dist/index.js",

@@ -40,13 +40,14 @@ for a public package, so add a personal access token with the
 Then install the package:
 
 ```sh
-npm install @mzt-tang-athena/schemas@^0.2.0
+npm install @mzt-tang-athena/schemas@^0.3.0
 ```
 
 A consumer that falls behind shows up in `npm outdated`.
 
 `v0.1.0` was `@monkey-tasks/schemas`, read from a submodule. `v0.2.0`
-is `@mzt-tang-athena/schemas`, read from the registry.
+is `@mzt-tang-athena/schemas`, read from the registry. `v0.3.0` reads
+a deed note as a task with a status, and drops the deed schema.
 
 ## Vale rules
 
@@ -68,11 +69,11 @@ agree, then publishes.
 
 | Package | Tag |
 | --- | --- |
-| `schemas` | `v0.2.0` |
+| `schemas` | `v0.3.0` |
 | `browser-driver` | `browser-driver-v0.1.0` |
 | `vale-rules` | `vale-rules-v0.1.0` |
 
 ```sh
-git tag vale-rules-v0.1.0
-git push origin vale-rules-v0.1.0
+git tag v0.3.0
+git push origin v0.3.0
 ```
