@@ -3,7 +3,7 @@ title: A harsh alert weight opts in to an alarm
 created: 2026-11-26
 priority: high
 assignee: opencode
-pr:
+pr: 24
 depends: []
 ---
 
@@ -22,11 +22,14 @@ The schema flips the default of `alert weight`.
 
 ## Acceptance
 
-- [ ] `taskFrontmatter` outputs `quiet` for an absent or unreadable
+- [x] `taskFrontmatter` outputs `quiet` for an absent or unreadable
       `alert weight`, and `harsh` only for `harsh`.
-- [ ] `taskWarnings` names an unreadable value and its fallback.
-- [ ] `make lint` and the schema tests pass.
+- [x] `taskWarnings` names an unreadable value and its fallback.
+- [x] `make lint` and the schema tests pass.
 
 ## Outcome
 
-(filled in before moving to done/)
+The schema reads `quiet` for an absent or unreadable `alert weight`.
+Only `harsh` reads `harsh`. The ADR records the flip and the
+rejected `alarm: true` property. The monkey-tasks app bumps its
+submodule after the operator merges this PR.
