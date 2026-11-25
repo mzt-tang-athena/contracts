@@ -404,14 +404,14 @@ describe("taskFrontmatter", () => {
 describe("alert weight", () => {
   const minimal = { kind: "[[tasks]]", created: "2026-10-19" };
 
-  it("reads an absent value as harsh", () => {
-    expect(taskFrontmatter.parse(minimal)["alert weight"]).toBe("harsh");
+  it("reads an absent value as quiet", () => {
+    expect(taskFrontmatter.parse(minimal)["alert weight"]).toBe("quiet");
   });
 
   it("keeps the input optional and the output an AlertWeight", () => {
     const input: z.input<typeof taskFrontmatter> = minimal;
     const weight: AlertWeight = taskFrontmatter.parse(input)["alert weight"];
-    expect(weight).toBe("harsh");
+    expect(weight).toBe("quiet");
   });
 
   it("reads each stored value", () => {
@@ -427,18 +427,18 @@ describe("alert weight", () => {
     }
   });
 
-  it("reads a null value as harsh", () => {
+  it("reads a null value as quiet", () => {
     const result = taskFrontmatter.safeParse({
       ...minimal,
       "alert weight": null,
     });
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data["alert weight"]).toBe("harsh");
+      expect(result.data["alert weight"]).toBe("quiet");
     }
   });
 
-  it("reads an unreadable value as harsh and keeps the note valid", () => {
+  it("reads an unreadable value as quiet and keeps the note valid", () => {
     for (const weight of ["loud", "Quiet", 5, ""]) {
       const result = taskFrontmatter.safeParse({
         ...minimal,
@@ -446,7 +446,7 @@ describe("alert weight", () => {
       });
       expect(result.success).toBe(true);
       if (result.success) {
-        expect(result.data["alert weight"]).toBe("harsh");
+        expect(result.data["alert weight"]).toBe("quiet");
       }
     }
   });
@@ -456,27 +456,27 @@ describe("alert weight", () => {
       "---",
       'kind: "[[tasks]]"',
       "created: 2026-10-19",
-      "alert weight: quiet",
+      "alert weight: harsh",
       "---",
       "",
     ].join("\n");
     const parsed = validateNote("water the fern.md", text, taskFrontmatter);
     expect(parsed.errors).toBeNull();
-    expect(parsed.data?.["alert weight"]).toBe("quiet");
+    expect(parsed.data?.["alert weight"]).toBe("harsh");
   });
 
   it("names every value it reads through a fallback", () => {
     expect(taskWarnings({ "alert weight": "loud" })).toEqual([
-      'alert weight "loud" is not harsh or quiet, so it rings harsh',
+      'alert weight "loud" is not harsh or quiet, so it is a normal reminder',
     ]);
     expect(taskWarnings({ "alert weight": "Quiet" })).toEqual([
-      'alert weight "Quiet" is not harsh or quiet, so it rings harsh',
+      'alert weight "Quiet" is not harsh or quiet, so it is a normal reminder',
     ]);
     expect(taskWarnings({ "alert weight": 5 })).toEqual([
-      "alert weight 5 is not harsh or quiet, so it rings harsh",
+      "alert weight 5 is not harsh or quiet, so it is a normal reminder",
     ]);
     expect(taskWarnings({ "alert weight": "" })).toEqual([
-      'alert weight "" is not harsh or quiet, so it rings harsh',
+      'alert weight "" is not harsh or quiet, so it is a normal reminder',
     ]);
   });
 

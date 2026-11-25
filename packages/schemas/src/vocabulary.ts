@@ -66,8 +66,9 @@ export const recurrenceRule = z
 export type RecurrenceRule = z.infer<typeof recurrenceRule>;
 
 /**
- * How hard a task's alerts ring. `harsh` is a need: it rings and is
- * hard to miss. `quiet` is a cue: it is silent and easy to clear.
+ * How a task's alerts ring. `quiet` is a normal reminder: one ordinary
+ * notification that follows Do Not Disturb. `harsh` opts the task in to
+ * an alarm that sounds on the alarm stream and breaks Do Not Disturb.
  */
 export const alertWeights = ["harsh", "quiet"] as const;
 export type AlertWeight = (typeof alertWeights)[number];
@@ -119,11 +120,12 @@ const taskFields = z
     recurrence: recurrenceRule.nullish(),
     "recurrence previous": wikilink.nullish(),
     /**
-     * How hard this task's alerts ring. An absent or empty value reads
-     * `harsh` with no warning. An unreadable value also reads `harsh`,
-     * and `taskWarnings` names it. A typo never silences an alert.
+     * How this task's alerts ring. An absent or empty value reads
+     * `quiet`, a normal reminder, with no warning. An unreadable value
+     * also reads `quiet`, and `taskWarnings` names it. A typo never
+     * silences an alert, because a normal reminder still rings once.
      */
-    "alert weight": z.enum(alertWeights).default("harsh").catch("harsh"),
+    "alert weight": z.enum(alertWeights).default("quiet").catch("quiet"),
     /** The one list this task belongs to; absent means Main. */
     list: wikilink.nullish(),
     /** Legacy. Validated so broken notes still fail, then dropped. */
@@ -174,7 +176,7 @@ export function taskWarnings(values: Record<string, unknown>): string[] {
   const weight = values["alert weight"];
   if (weight != null && !alertWeights.some((value) => value === weight)) {
     warnings.push(
-      `alert weight ${JSON.stringify(weight)} is not harsh or quiet, so it rings harsh`,
+      `alert weight ${JSON.stringify(weight)} is not harsh or quiet, so it is a normal reminder`,
     );
   }
   const status = rawStatus(values.status);
