@@ -71,11 +71,15 @@ node packages/schemas/dist/vault-check-bin.js --stdin \
 
 | Flag | Meaning |
 |---|---|
-| `--vault <root>` | the vault root; default is the folder above the note that holds `.obsidian`, else the cwd |
+| `--vault <root>` | the vault root; discovered when absent |
 | `--agent` | an agent never creates a `kind: "[[notes]]"` note; editing one warns |
 | `--warn` | print problems and exit 0 (default) |
 | `--block` | exit 1 on an error; warnings never fail |
 | `--json` | print the problems as JSON |
+
+Without `--vault`, the checker uses the nearest folder at or above the
+path that holds `.obsidian`. For a folder it falls back to that folder,
+and otherwise to the cwd.
 
 A problem prints as `path: field: message`, and a warning's message
 starts with `warning: `. The checker reads only the file name of a note

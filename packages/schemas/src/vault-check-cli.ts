@@ -31,8 +31,8 @@ usage: vault-check [<path>] [options]
   <path>          one note, or a vault root to check every note under it
   --stdin         read the note text from stdin, for a write that has not happened yet
   --path <path>   the note's path, with or without --stdin; vault-relative or absolute
-  --vault <root>  the vault root; default: a folder path itself, else the nearest
-                  folder above the note that holds .obsidian, else the cwd
+  --vault <root>  the vault root; default: the nearest folder at or above the
+                  path that holds .obsidian, else a folder path itself, else the cwd
   --agent         apply the operator's rule for agent writes: a new kind notes note
                   is an error, an edit to an existing one is a warning
   --warn          print problems and exit 0 (default)
