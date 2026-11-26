@@ -7,9 +7,9 @@ GitHub Packages (ADR 0001).
 
 ## Plan
 
-1. `packages/schemas` - the notes vocabulary: task, deed, and list
-   notes for monkey-tasks (moved from monkey-tasks, first tagged
-   v0.1.0).
+1. `packages/schemas` - the notes vocabulary: task, deed, list and
+   agent notes, and the journal file name. It moved from monkey-tasks
+   and was first tagged v0.1.0.
 2. `packages/browser-driver` - the run event stream for the browser
    driver, tagged `browser-driver-v0.1.0`.
 3. `packages/vale-rules` - the shared `MyRules` Vale style pack, tagged
@@ -48,6 +48,7 @@ A consumer that falls behind shows up in `npm outdated`.
 `v0.1.0` was `@monkey-tasks/schemas`, read from a submodule. `v0.2.0`
 is `@mzt-tang-athena/schemas`, read from the registry. `v0.3.0` reads
 a deed note as a task with a status, and drops the deed schema.
+`v0.3.1` adds the agent note schema and the journal file name rule.
 
 ## Vale rules
 
@@ -69,11 +70,11 @@ agree, then publishes.
 
 | Package | Tag |
 | --- | --- |
-| `schemas` | `v0.3.0` |
+| `schemas` | `v0.3.1` |
 | `browser-driver` | `browser-driver-v0.1.0` |
 | `vale-rules` | `vale-rules-v0.1.0` |
 
 ```sh
-git tag v0.3.0
-git push origin v0.3.0
+git tag v0.3.1
+git push origin v0.3.1
 ```
