@@ -241,6 +241,46 @@ export const agentFrontmatter = z
   .loose();
 export type AgentFrontmatter = z.infer<typeof agentFrontmatter>;
 
+/**
+ * The fields the three kinds the operator writes share, per ADR
+ * 20261126-vault-writing-standards and its 2026-11-26 amendment. Only
+ * `kind` is required on those notes, so `created` is optional here.
+ */
+const operatorFields = {
+  created: dateOrDatetime.nullish(),
+  categories: optionalList(wikilink),
+  types: optionalList(wikilink),
+  related: optionalList(wikilink),
+};
+
+/** Frontmatter of the operator's own thinking, `kind: "[[notes]]"`. */
+export const noteFrontmatter = z
+  .object({
+    kind: wikilink.pipe(z.literal("[[notes]]")),
+    ...operatorFields,
+  })
+  .loose();
+export type NoteFrontmatter = z.infer<typeof noteFrontmatter>;
+
+/** Frontmatter of a reference note, `kind: "[[references]]"`. */
+export const referenceFrontmatter = z
+  .object({
+    kind: wikilink.pipe(z.literal("[[references]]")),
+    ...operatorFields,
+  })
+  .loose();
+export type ReferenceFrontmatter = z.infer<typeof referenceFrontmatter>;
+
+/** Frontmatter of a waypoint note, `kind: "[[waypoints]]"`. */
+export const waypointFrontmatter = z
+  .object({
+    kind: wikilink.pipe(z.literal("[[waypoints]]")),
+    ...operatorFields,
+    cover: wikilink.nullish(),
+  })
+  .loose();
+export type WaypointFrontmatter = z.infer<typeof waypointFrontmatter>;
+
 function isCalendarDate(year: number, month: number, day: number): boolean {
   const date = new Date(Date.UTC(year, month - 1, day));
   return (
