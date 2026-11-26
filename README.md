@@ -8,8 +8,9 @@ GitHub Packages (ADR 0001).
 ## Plan
 
 1. `packages/schemas` - the notes vocabulary: task, deed, list and
-   agent notes, and the journal file name. It moved from monkey-tasks
-   and was first tagged v0.1.0.
+   agent notes, the operator's notes, references and waypoints, and the
+   journal file name. It moved from monkey-tasks and was first tagged
+   v0.1.0.
 2. `packages/browser-driver` - the run event stream for the browser
    driver, tagged `browser-driver-v0.1.0`.
 3. `packages/vale-rules` - the shared `MyRules` Vale style pack, tagged
@@ -50,7 +51,8 @@ is `@mzt-tang-athena/schemas`, read from the registry. `v0.3.0` reads
 a deed note as a task with a status, and drops the deed schema.
 `v0.3.1` adds the agent note schema and the journal file name rule.
 `v0.4.0` adds the `vault-check` command and its package bin. `v0.5.0`
-adds the `Agents/` folder rule to that command.
+adds the `Agents/` folder rule to that command. `v0.6.0` adds the three
+kinds the operator writes: notes, references and waypoints.
 
 ## Vault check
 
@@ -59,7 +61,8 @@ the vault. ADR `docs/adr/20261126-vault-writing-standards.md` says why.
 It reads a note's `kind` and checks it against that kind's schema. It
 also checks a journal file name, and resolves the `types` links on an
 agent note against the vault's file names. It keeps `Agents/` flat, and
-holding agent notes only.
+holding agent notes only. A malformed notes, references or waypoints
+note is a warning, and an error under `--agent`.
 
 ```sh
 # one note, or a whole vault root
@@ -90,8 +93,10 @@ under `Journal/Daily/`. A bad name is a warning, so a journal write is
 never blocked. A note directly in `Agents/` whose kind is not `agents`
 is an error. A note in an `Agents/` subfolder is a warning, because the
 folder is flat. An `Agents` folder deeper in the vault, such as
-`Archive/Agents/`, is not this folder, and the rule ignores it. The
-checker skips `AGENTS.md` files, the `.obsidian`, `.git` and `.omp`
+`Archive/Agents/`, is not this folder, and the rule ignores it. A
+malformed notes, references or waypoints note is a warning. Under
+`--agent`, the same note is an error, because the hooks never block the
+operator. The checker skips `AGENTS.md` files, the `.obsidian`, `.git` and `.omp`
 folders, and the `Templates`, `_Templates` and `90-Templates` folders
 at the vault root. An unreadable folder gets one warning,
 `path: -: warning: unreadable, skipped`.
@@ -112,7 +117,7 @@ the publish workflow run, or publish by hand from a machine with a
 
 ```sh
 npm publish --workspace @mzt-tang-athena/schemas
-npm install @mzt-tang-athena/schemas@^0.5.0
+npm install @mzt-tang-athena/schemas@^0.6.0
 node_modules/.bin/vault-check --vault ~/vault/main
 ```
 
@@ -139,11 +144,11 @@ agree, then publishes.
 
 | Package | Tag |
 | --- | --- |
-| `schemas` | `v0.5.0` |
+| `schemas` | `v0.6.0` |
 | `browser-driver` | `browser-driver-v0.1.0` |
 | `vale-rules` | `vale-rules-v0.1.0` |
 
 ```sh
-git tag v0.5.0
-git push origin v0.5.0
+git tag v0.6.0
+git push origin v0.6.0
 ```
