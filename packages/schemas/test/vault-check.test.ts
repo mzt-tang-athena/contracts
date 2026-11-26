@@ -217,6 +217,20 @@ describe("runCli", () => {
     ]);
   });
 
+  it("keeps the agent kind-notes rule alongside the folder rule", () => {
+    const root = makeVault({});
+    const result = runCli(
+      ["--stdin", "--path", "Agents/new.md", "--vault", root, "--agent", "--block"],
+      `---\nkind: "[[notes]]"\n---\n`,
+      root,
+    );
+    expect(result.code).toBe(1);
+    expect(result.stdout.trim().split("\n")).toEqual([
+      "Agents/new.md: kind: a note directly in Agents/ must be kind [[agents]], not [[notes]]",
+      "Agents/new.md: kind: an agent never creates a kind notes note, which holds the operator's own thinking",
+    ]);
+  });
+
   it("warns on a note in an Agents/ subfolder and still checks its kind", () => {
     const root = makeVault({
       "Agents/home-server/topology.md": `---\nkind: "[[agents]]"\ncreated: 2026-11-26\ncategories: "[[work]]"\n---\n`,
