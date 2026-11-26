@@ -32,7 +32,7 @@ usage: vault-check [<path>] [options]
   --stdin         read the note text from stdin, for a write that has not happened yet
   --path <path>   the note's path, with or without --stdin; vault-relative or absolute
   --vault <root>  the vault root; default: the nearest folder at or above the
-                  path that holds .obsidian, else a folder path itself, else the cwd
+                  path that holds .obsidian or .git, else exit 2
   --agent         apply the operator's rule for agent writes: a new kind notes note
                   is an error, an edit to an existing one is a warning
   --warn          print problems and exit 0 (default)
@@ -41,7 +41,8 @@ usage: vault-check [<path>] [options]
   -h, --help      print this help
 
 output: one line per problem, "path: field: message"; a warning's message
-starts with "warning: ".
+starts with "warning: ". A folder the checker cannot read is skipped with
+"path: -: warning: unreadable, skipped".
 `;
 
 type Options = {
@@ -116,8 +117,13 @@ function parseArgs(argv: string[]): Parsed {
     }
   }
 
-  if (!help && target === null) {
-    return { ok: false, error: "give a note path" };
+  if (!help) {
+    if (stdin && target === null) {
+      return { ok: false, error: "--stdin needs --path <path>" };
+    }
+    if (!stdin && target === null && vault === null) {
+      return { ok: false, error: "give a note path or --vault <root>" };
+    }
   }
 
   return {
@@ -134,13 +140,18 @@ function parseArgs(argv: string[]): Parsed {
   };
 }
 
-/** The nearest folder at or above `start` that holds .obsidian, else the cwd. */
-function findVault(start: string, cwd: string): string {
+/** The nearest folder at or above `start` that holds .obsidian or .git, else null. */
+function findVault(start: string): string | null {
   let folder = start;
   for (;;) {
-    if (existsSync(join(folder, ".obsidian"))) return folder;
+    if (
+      existsSync(join(folder, ".obsidian")) ||
+      existsSync(join(folder, ".git"))
+    ) {
+      return folder;
+    }
     const parent = dirname(folder);
-    if (parent === folder) return cwd;
+    if (parent === folder) return null;
     folder = parent;
   }
 }
@@ -148,6 +159,7 @@ function findVault(start: string, cwd: string): string {
 /** Vault-relative when the note sits inside the vault, else absolute. */
 function displayPath(file: string, vault: string): string {
   const rel = relative(vault, file);
+  if (rel === "") return ".";
   if (rel.startsWith("..") || isAbsolute(rel)) return file;
   return rel.split(sep).join("/");
 }
@@ -184,6 +196,9 @@ export function runCli(
       stderr: `vault-check: no such vault: ${vaultFlag}\n`,
     };
   }
+  if (vaultFlag !== null && !options.stdin && options.target === "") {
+    options.target = vaultFlag;
+  }
 
   let target: string;
   if (options.stdin) {
@@ -205,24 +220,38 @@ export function runCli(
   if (!sweep && basename(target) === "AGENTS.md") {
     return { code: 0, stdout: options.json ? "[]\n" : "", stderr: "" };
   }
-  const vault =
-    vaultFlag ??
-    findVault(sweep ? target : dirname(target), sweep ? target : cwd);
+  const vault = vaultFlag ?? findVault(sweep ? target : dirname(target));
+  if (vault === null) {
+    return {
+      code: 2,
+      stdout: "",
+      stderr:
+        "vault-check: no .obsidian or .git folder at or above this path; pass --vault <root>\n",
+    };
+  }
 
   const problems: Problem[] = [];
   const files: { file: string; text: string }[] = [];
+  const skipped = new Set<string>();
+  const reportSkip = (file: string) => {
+    const path = displayPath(file, vault);
+    if (skipped.has(path)) return;
+    skipped.add(path);
+    problems.push({
+      path,
+      field: "-",
+      severity: "warning",
+      message: "unreadable, skipped",
+    });
+  };
+
   if (options.stdin) {
     files.push({ file: target, text: stdin });
   } else if (sweep) {
-    for (const file of markdownFiles(target)) {
+    for (const file of markdownFiles(target, reportSkip)) {
       const text = readNote(file);
       if (text === null) {
-        problems.push({
-          path: displayPath(file, vault),
-          field: "file",
-          severity: "error",
-          message: "cannot read this file",
-        });
+        reportSkip(file);
       } else {
         files.push({ file, text });
       }
@@ -240,7 +269,7 @@ export function runCli(
   }
 
   let names: Set<string> | null = null;
-  const resolveNames = () => (names ??= noteNames(vault));
+  const resolveNames = () => (names ??= noteNames(vault, reportSkip));
 
   for (const { file, text } of files) {
     const existingKind = options.agent

@@ -1,4 +1,5 @@
 import {
+  chmodSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -19,14 +20,28 @@ const agent = `---\nkind: "[[agents]]"\ncreated: 2026-11-26\ncategories:\n  - "[
 
 const roots: string[] = [];
 
-function makeVault(files: Record<string, string>): string {
+function makeVault(
+  files: Record<string, string>,
+  marker: string | null = ".obsidian",
+): string {
   const root = mkdtempSync(join(tmpdir(), "vault-check-"));
   roots.push(root);
+  if (marker !== null) {
+    const file = join(root, marker, "marker");
+    mkdirSync(dirname(file), { recursive: true });
+    writeFileSync(file, "");
+  }
   for (const [path, text] of Object.entries(files)) {
     mkdirSync(dirname(join(root, path)), { recursive: true });
     writeFileSync(join(root, path), text);
   }
   return root;
+}
+
+function makeFolder(): string {
+  const folder = mkdtempSync(join(tmpdir(), "vault-check-cwd-"));
+  roots.push(folder);
+  return folder;
 }
 
 afterEach(() => {
@@ -252,12 +267,88 @@ describe("runCli", () => {
 
   it("uses the folder above a swept subfolder as the vault root", () => {
     const root = makeVault({
-      ".obsidian/app.json": `{}`,
       "handover-sheet.md": `# a note that types can point at\n`,
       "Agents/new.md": agent.replace("[[handover]]", "[[handover-sheet]]"),
     });
     const result = runCli([join(root, "Agents"), "--block"], "", root);
     expect(result).toEqual({ code: 0, stdout: "", stderr: "" });
+  });
+
+  it("sweeps the root when --vault is the only path given", () => {
+    const root = makeVault({ "Tasks/broken.md": `---\nkind: "[[tasks]]"\n---\n` });
+    const result = runCli(["--vault", root], "", makeFolder());
+    expect(result.code).toBe(0);
+    expect(result.stdout).toBe(
+      "Tasks/broken.md: created: a task note needs a created date\n",
+    );
+  });
+
+  it("finds the vault root at a .git folder, with no .obsidian", () => {
+    const root = makeVault(
+      {
+        ".git/HEAD": "ref: refs/heads/main\n",
+        "Agents/handover.md": `---\nkind: "[[agents]]"\ncreated: 2026-11-01\ncategories: "[[work]]"\n---\n`,
+        "Agents/new.md": agent,
+      },
+      null,
+    );
+    const result = runCli([join(root, "Agents/new.md"), "--block"], "", makeFolder());
+    expect(result).toEqual({ code: 0, stdout: "", stderr: "" });
+  });
+
+  it("exits 2 when no .obsidian or .git folder is above the path", () => {
+    const root = makeVault({ "Agents/new.md": agent }, null);
+    const result = runCli([join(root, "Agents/new.md")], "", makeFolder());
+    expect(result).toEqual({
+      code: 2,
+      stdout: "",
+      stderr:
+        "vault-check: no .obsidian or .git folder at or above this path; pass --vault <root>\n",
+    });
+  });
+
+  it.skipIf(process.getuid?.() === 0)(
+    "skips an unreadable folder and reports it once as a warning",
+    () => {
+      const root = makeVault({
+        "Tasks/warned.md": `---\nkind: "[[tasks]]"\ncreated: 2026-11-26\nalert weight: loud\n---\n`,
+        "Agents/new.md": agent,
+        "handover.md": `# a note that types can point at\n`,
+        "Locked/hidden.md": `---\nkind: "[[tasks]]"\n---\n`,
+      });
+      const locked = join(root, "Locked");
+      chmodSync(locked, 0o000);
+      try {
+        const result = runCli([root, "--block"], "", root);
+        expect(result.code).toBe(0);
+        const lines = result.stdout.trim().split("\n");
+        expect(
+          lines.filter(
+            (line) => line === "Locked: -: warning: unreadable, skipped",
+          ),
+        ).toHaveLength(1);
+        expect(lines).toHaveLength(2);
+      } finally {
+        chmodSync(locked, 0o755);
+      }
+    },
+  );
+
+  it("skips template folders at the vault root, but not one deeper", () => {
+    const broken = `---\nkind: "[[tasks]]"\n---\n`;
+    const root = makeVault({
+      "Templates/task template.md": broken,
+      "_Templates/task template.md": broken,
+      "90-Templates/task template.md": broken,
+    });
+    expect(runCli([root, "--block"], "", root)).toEqual({
+      code: 0,
+      stdout: "",
+      stderr: "",
+    });
+
+    const nested = makeVault({ "Notes/Templates/real.md": broken });
+    expect(runCli([nested, "--block"], "", nested).code).toBe(1);
   });
 
   it("refuses a bad invocation", () => {

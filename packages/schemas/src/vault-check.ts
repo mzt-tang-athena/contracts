@@ -49,6 +49,29 @@ export const SKIP_FOLDERS: ReadonlySet<string> = new Set([
   ".omp",
 ]);
 
+/** Template folders at the vault root, whose notes hold placeholders, not values. */
+export const TEMPLATE_FOLDERS: ReadonlySet<string> = new Set([
+  "Templates",
+  "_Templates",
+  "90-Templates",
+]);
+
+/** Called once with each folder the walk could not read. */
+export type WalkSkip = (folder: string) => void;
+
+function readEntries(folder: string, onSkip?: WalkSkip) {
+  try {
+    return readdirSync(folder, { withFileTypes: true });
+  } catch {
+    onSkip?.(folder);
+    return [];
+  }
+}
+
+function skipFolder(name: string, atRoot: boolean): boolean {
+  return SKIP_FOLDERS.has(name) || (atRoot && TEMPLATE_FOLDERS.has(name));
+}
+
 export function checkNote(input: NoteInput, names: NoteNames): Problem[] {
   const problems: Problem[] = [];
   const add = (field: string, severity: Severity, message: string) => {
@@ -172,13 +195,15 @@ export function isJournalPath(path: string): boolean {
  * path from the vault root without extension. Obsidian resolves a link
  * by either form, so both are in the set.
  */
-export function noteNames(vaultRoot: string): Set<string> {
+export function noteNames(vaultRoot: string, onSkip?: WalkSkip): Set<string> {
   const names = new Set<string>();
   const walk = (folder: string, prefix: string): void => {
-    for (const entry of readdirSync(folder, { withFileTypes: true })) {
+    for (const entry of readEntries(folder, onSkip)) {
       const path = prefix === "" ? entry.name : `${prefix}/${entry.name}`;
       if (entry.isDirectory()) {
-        if (!SKIP_FOLDERS.has(entry.name)) walk(join(folder, entry.name), path);
+        if (!skipFolder(entry.name, prefix === "")) {
+          walk(join(folder, entry.name), path);
+        }
         continue;
       }
       if (!entry.name.endsWith(".md") || entry.name === "AGENTS.md") continue;
@@ -192,12 +217,17 @@ export function noteNames(vaultRoot: string): Set<string> {
 }
 
 /** Every markdown note under a vault root, in a stable order. */
-export function markdownFiles(vaultRoot: string): string[] {
+export function markdownFiles(
+  vaultRoot: string,
+  onSkip?: WalkSkip,
+): string[] {
   const files: string[] = [];
-  const walk = (folder: string): void => {
-    for (const entry of readdirSync(folder, { withFileTypes: true })) {
+  const walk = (folder: string, atRoot: boolean): void => {
+    for (const entry of readEntries(folder, onSkip)) {
       if (entry.isDirectory()) {
-        if (!SKIP_FOLDERS.has(entry.name)) walk(join(folder, entry.name));
+        if (!skipFolder(entry.name, atRoot)) {
+          walk(join(folder, entry.name), false);
+        }
         continue;
       }
       if (entry.name.endsWith(".md") && entry.name !== "AGENTS.md") {
@@ -205,6 +235,6 @@ export function markdownFiles(vaultRoot: string): string[] {
       }
     }
   };
-  walk(vaultRoot);
+  walk(vaultRoot, true);
   return files.sort();
 }

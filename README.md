@@ -77,15 +77,18 @@ node packages/schemas/dist/vault-check-bin.js --stdin \
 | `--block` | exit 1 on an error; warnings never fail |
 | `--json` | print the problems as JSON |
 
-Without `--vault`, the checker uses the nearest folder at or above the
-path that holds `.obsidian`. For a folder it falls back to that folder,
-and otherwise to the cwd.
+Without `--vault`, the checker walks up from the note's folder to the
+nearest folder holding `.obsidian` or `.git`. If there is none, it
+exits 2 and asks for `--vault`. It never reads the cwd. A vault root
+alone, as `<path>` or as `--vault <root>`, checks every note under it.
 
 A problem prints as `path: field: message`, and a warning's message
 starts with `warning: `. The checker reads only the file name of a note
 under `Journal/Daily/`. A bad name is a warning, so a journal write is
-never blocked. The checker skips `AGENTS.md` files and the `.obsidian`,
-`.git` and `.omp` folders.
+never blocked. The checker skips `AGENTS.md` files, the `.obsidian`,
+`.git` and `.omp` folders, and the `Templates`, `_Templates` and
+`90-Templates` folders at the vault root. An unreadable folder gets one
+warning, `path: -: warning: unreadable, skipped`.
 
 ### Run it today
 
