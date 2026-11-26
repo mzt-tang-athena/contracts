@@ -3,7 +3,7 @@ title: Light contracts for notes, references and waypoints
 created: 2026-11-26
 priority: normal
 assignee: opencode
-pr:
+pr: 28
 depends: [20261126-vault-writing-standards]
 ---
 
