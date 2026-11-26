@@ -163,29 +163,49 @@ function rawStatus(raw: unknown): TaskStatus | null {
   return parsed.success ? (parsed.data ?? null) : null;
 }
 
+/** One task warning, named by the property that raised it. */
+export type TaskWarning = {
+  field: string;
+  message: string;
+};
+
 /**
- * One message per task frontmatter value the schema reads through a
+ * One warning per task frontmatter value the schema reads through a
  * fallback, or that disagrees with another. A warning means the note is
  * valid and its row stays; it says which value was replaced or what
  * disagrees.
  */
-export function taskWarnings(values: Record<string, unknown>): string[] {
-  const warnings: string[] = [];
+export function taskWarningDetails(
+  values: Record<string, unknown>,
+): TaskWarning[] {
+  const warnings: TaskWarning[] = [];
   const weight = values["alert weight"];
   if (weight != null && !alertWeights.some((value) => value === weight)) {
-    warnings.push(
-      `alert weight ${JSON.stringify(weight)} is not harsh or quiet, so it rings harsh`,
-    );
+    warnings.push({
+      field: "alert weight",
+      message: `alert weight ${JSON.stringify(weight)} is not harsh or quiet, so it rings harsh`,
+    });
   }
   const status = rawStatus(values.status);
   const completed = values.completed;
   if (status === "[[done]]" && completed == null) {
-    warnings.push("status [[done]] has no completed date");
+    warnings.push({
+      field: "status",
+      message: "status [[done]] has no completed date",
+    });
   }
   if (status != null && status !== "[[done]]" && completed != null) {
-    warnings.push(`completed date with status ${status} is not done`);
+    warnings.push({
+      field: "completed",
+      message: `completed date with status ${status} is not done`,
+    });
   }
   return warnings;
+}
+
+/** The same warnings as plain messages, for clients that only print them. */
+export function taskWarnings(values: Record<string, unknown>): string[] {
+  return taskWarningDetails(values).map((warning) => warning.message);
 }
 
 /** Frontmatter of a list note, per ticket 0004. */
