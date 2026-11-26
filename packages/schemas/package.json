@@ -1,10 +1,13 @@
 {
   "name": "@mzt-tang-athena/schemas",
-  "version": "0.3.0",
+  "version": "0.6.0",
   "description": "Notes vocabulary schemas for the monkey projects and athena services",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "bin": {
+    "vault-check": "./dist/vault-check-bin.js"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",

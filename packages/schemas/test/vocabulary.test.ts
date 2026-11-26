@@ -1,11 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import {
+  agentFrontmatter,
+  journalFileName,
   listFrontmatter,
+  noteFrontmatter,
+  referenceFrontmatter,
   taskFrontmatter,
   taskIsDone,
   taskWarnings,
   validateNote,
+  waypointFrontmatter,
   wikilinkTarget,
   type AlertWeight,
   type TaskStatus,
@@ -836,5 +841,303 @@ describe("validateNote", () => {
 describe("wikilinkTarget", () => {
   it("extracts the target", () => {
     expect(wikilinkTarget("[[groceries]]")).toBe("groceries");
+  });
+});
+
+describe("agentFrontmatter", () => {
+  it("reads an agent note as an agent writes it", () => {
+    const result = validateNote(
+      "mstack-handover.md",
+      note(
+        'kind: "[[agents]]"',
+        "created: 2026-11-26T09:30",
+        "categories:",
+        '  - "[[life engineering systems]]"',
+        "types:",
+        '  - "[[handovers]]"',
+        "tags:",
+        "  - mstack",
+        "  - handover",
+      ),
+      agentFrontmatter,
+    );
+    expect(result.errors).toBeNull();
+    expect(result.data).toMatchObject({
+      kind: "[[agents]]",
+      created: "2026-11-26T09:30",
+      categories: ["[[life engineering systems]]"],
+      types: ["[[handovers]]"],
+      tags: ["mstack", "handover"],
+    });
+  });
+
+  it("reads a bare kind and a date-only created", () => {
+    const result = agentFrontmatter.safeParse({
+      kind: "agents",
+      created: "2026-11-26",
+      categories: ["[[physical]]"],
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.kind).toBe("[[agents]]");
+    }
+  });
+
+  it("reads a single category as a one-item list", () => {
+    const result = agentFrontmatter.safeParse({
+      kind: "[[agents]]",
+      created: "2026-11-26",
+      categories: "[[physical]]",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.categories).toEqual(["[[physical]]"]);
+    }
+  });
+
+  it("keeps properties it does not know", () => {
+    const result = agentFrontmatter.safeParse({
+      kind: "[[agents]]",
+      created: "2026-11-26",
+      categories: ["[[physical]]"],
+      banner: "x.png",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.banner).toBe("x.png");
+    }
+  });
+
+  it("rejects a note without categories", () => {
+    for (const categories of [undefined, null, []]) {
+      const result = agentFrontmatter.safeParse({
+        kind: "[[agents]]",
+        created: "2026-11-26",
+        categories,
+      });
+      expect(result.success).toBe(false);
+    }
+  });
+
+  it("rejects a note without a created date", () => {
+    for (const created of [undefined, null, "26 Nov 2026"]) {
+      const result = agentFrontmatter.safeParse({
+        kind: "[[agents]]",
+        created,
+        categories: ["[[physical]]"],
+      });
+      expect(result.success).toBe(false);
+    }
+  });
+
+  it("rejects the operator's notes kind and every other kind", () => {
+    for (const kind of ["notes", "[[notes]]", "[[tasks]]", "[[agent]]", ""]) {
+      const result = agentFrontmatter.safeParse({
+        kind,
+        created: "2026-11-26",
+        categories: ["[[physical]]"],
+      });
+      expect(result.success).toBe(false);
+    }
+  });
+});
+
+describe("noteFrontmatter", () => {
+  it("reads the operator's thinking with a kind alone", () => {
+    for (const kind of ["[[notes]]", "notes"]) {
+      const result = noteFrontmatter.safeParse({ kind });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.kind).toBe("[[notes]]");
+      }
+    }
+  });
+
+  it("keeps created optional and reads it as a date or a datetime", () => {
+    expect(noteFrontmatter.parse({ kind: "[[notes]]" })).not.toHaveProperty(
+      "created",
+    );
+    for (const created of ["2026-11-26", "2026-11-26T09:30"]) {
+      expect(
+        noteFrontmatter.parse({ kind: "[[notes]]", created }).created,
+      ).toBe(created);
+    }
+  });
+
+  it("reads a single link as a one-item list", () => {
+    const parsed = noteFrontmatter.parse({
+      kind: "[[notes]]",
+      categories: "[[digital]]",
+      types: "[[my agentic environment]]",
+      related: "[[media]]",
+    });
+    expect(parsed.categories).toEqual(["[[digital]]"]);
+    expect(parsed.types).toEqual(["[[my agentic environment]]"]);
+    expect(parsed.related).toEqual(["[[media]]"]);
+  });
+
+  it("reads a note as the vault writes it and keeps its other properties", () => {
+    const result = validateNote(
+      "adhd-resources.md",
+      note(
+        'kind: "[[notes]]"',
+        "created: 2026-09-07",
+        "tags:",
+        "  - adhd",
+        "categories:",
+        '  - "[[digital]]"',
+        '  - "[[mental]]"',
+        "types:",
+        '  - "[[reading list]]"',
+        "updated:",
+      ),
+      noteFrontmatter,
+    );
+    expect(result.errors).toBeNull();
+    expect(result.data).toMatchObject({
+      kind: "[[notes]]",
+      created: "2026-09-07",
+      categories: ["[[digital]]", "[[mental]]"],
+      types: ["[[reading list]]"],
+      tags: ["adhd"],
+      updated: null,
+    });
+  });
+
+  it("rejects another kind in either shape", () => {
+    for (const kind of ["agents", "[[agents]]", "[[note]]", "references", ""]) {
+      expect(noteFrontmatter.safeParse({ kind }).success).toBe(false);
+    }
+  });
+
+  it("rejects a broken link and a broken created date", () => {
+    const brokenLink = validateNote(
+      "mine.md",
+      note('kind: "[[notes]]"', 'categories: "[[]]"'),
+      noteFrontmatter,
+    );
+    expect(brokenLink.errors?.issues[0]?.path).toEqual(["categories", 0]);
+
+    const brokenDate = validateNote(
+      "mine.md",
+      note('kind: "[[notes]]"', "created: soon"),
+      noteFrontmatter,
+    );
+    expect(brokenDate.errors?.issues[0]?.path).toEqual(["created"]);
+  });
+});
+
+describe("referenceFrontmatter", () => {
+  it("reads a reference with a kind alone", () => {
+    expect(referenceFrontmatter.parse({ kind: "references" }).kind).toBe(
+      "[[references]]",
+    );
+  });
+
+  it("reads a recipe and keeps its own fields", () => {
+    const result = validateNote(
+      "miso-soup.md",
+      note(
+        'kind: "[[references]]"',
+        "ingredients:",
+        "  - miso-paste",
+        "  - tofu",
+        "categories:",
+        '  - "[[Waypoints/physical|physical]]"',
+        "types:",
+        '  - "[[recipes]]"',
+        "food types:",
+        "  - side dish",
+        "rating: 7",
+        "serving size:",
+      ),
+      referenceFrontmatter,
+    );
+    expect(result.errors).toBeNull();
+    expect(result.data).toMatchObject({
+      categories: ["[[Waypoints/physical|physical]]"],
+      types: ["[[recipes]]"],
+      ingredients: ["miso-paste", "tofu"],
+      "food types": ["side dish"],
+      rating: "7",
+      "serving size": null,
+    });
+  });
+
+  it("rejects another kind and a broken link", () => {
+    for (const kind of ["notes", "[[note]]", "[[recipe]]"]) {
+      expect(referenceFrontmatter.safeParse({ kind }).success).toBe(false);
+    }
+    expect(
+      referenceFrontmatter.safeParse({
+        kind: "[[references]]",
+        types: [{}],
+      }).success,
+    ).toBe(false);
+  });
+});
+
+describe("waypointFrontmatter", () => {
+  it("reads a waypoint with a kind alone", () => {
+    expect(waypointFrontmatter.parse({ kind: "waypoints" }).kind).toBe(
+      "[[waypoints]]",
+    );
+  });
+
+  it("reads the cover as one link and categories as links", () => {
+    const result = validateNote(
+      "life engineering systems.md",
+      note(
+        'kind: "[[waypoints]]"',
+        "categories:",
+        '  - "[[Waypoints/physical|physical]]"',
+        '  - "[[environmental]]"',
+        'cover: "[[image.jpg]]"',
+      ),
+      waypointFrontmatter,
+    );
+    expect(result.errors).toBeNull();
+    expect(result.data).toMatchObject({
+      categories: ["[[Waypoints/physical|physical]]", "[[environmental]]"],
+      cover: "[[image.jpg]]",
+    });
+  });
+
+  it("wraps a bare cover value", () => {
+    expect(
+      waypointFrontmatter.parse({ kind: "[[waypoints]]", cover: "image.jpg" })
+        .cover,
+    ).toBe("[[image.jpg]]");
+  });
+
+  it("rejects another kind, a broken cover and a cover list", () => {
+    for (const kind of ["notes", "[[waypoint]]", "[[areas]]"]) {
+      expect(waypointFrontmatter.safeParse({ kind }).success).toBe(false);
+    }
+    for (const cover of ["[[]]", ["[[image.jpg]]"]]) {
+      expect(
+        waypointFrontmatter.safeParse({ kind: "[[waypoints]]", cover }).success,
+      ).toBe(false);
+    }
+  });
+});
+
+describe("journalFileName", () => {
+  it("accepts a real date", () => {
+    for (const name of ["2026-11-26.md", "2024-02-29.md", "2023-08-08.md"]) {
+      expect(journalFileName.safeParse(name).success).toBe(true);
+    }
+  });
+
+  it("rejects a date that is not on the calendar", () => {
+    for (const name of ["2025-02-29.md", "2026-13-01.md", "2026-04-31.md", "2026-00-10.md"]) {
+      expect(journalFileName.safeParse(name).success).toBe(false);
+    }
+  });
+
+  it("rejects any other name", () => {
+    for (const name of ["AGENTS.md", "2026-11-26", "2026-11-26.txt", "2026-1-26.md", "Daily/2026-11-26.md"]) {
+      expect(journalFileName.safeParse(name).success).toBe(false);
+    }
   });
 });

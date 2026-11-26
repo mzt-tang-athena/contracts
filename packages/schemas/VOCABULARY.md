@@ -1,6 +1,6 @@
 # Vault note vocabulary
 
-The single contract for every client that reads or writes task notes:
+The single contract for every client that reads or writes vault notes:
 the mobile app, Obsidian, vault agents, and a future MCP server on
 athena. The Zod models in `src/vocabulary.ts` are the executable form
 of this file. This document explains what each property means.
@@ -15,9 +15,10 @@ Rules that hold for all note types:
   the link form.
 - Dates are `YYYY-MM-DD`. Datetimes are `YYYY-MM-DDTHH:MM`, seconds
   optional. No time zones; the phone's local time is the meaning.
-- An absent property means the documented default. Nothing is required
-  beyond `kind` on a deed note, and `kind` and `created` on a task or
-  list note.
+- An absent property means the documented default. Only `kind` is
+  required on a deed note, and on a notes, references or waypoints
+  note. A task or list note also needs `created`, and an agent note
+  also needs `created` and `categories`.
 - Properties the schemas do not know are preserved, never rejected, so
   notes keep whatever Obsidian plugins add.
 - Anything the app or a query needs lives in the note. Filesystem
@@ -94,3 +95,105 @@ with the old `lists` property reads its first link.
 
 A list needs no other metadata yet. List notes earn properties of their
 own (pinned order, icon, a waypoint) only when a feature asks for them.
+
+## Agent notes
+
+One file per note in `Agents/`. An agent note holds what an agent
+wrote for the operator to read or keep: a handover, research, or a
+note about the life system. The folder is flat. Lists come from a
+Base, not from subfolders. A note directly in `Agents/` whose kind is
+not `agents` is an error. A note in an `Agents/` subfolder is a
+warning.
+
+| Property | Form | Default when absent | Meaning |
+|---|---|---|---|
+| `kind` | `"[[agents]]"` | required | the note type marker |
+| `created` | date or datetime | required | when the agent wrote the note |
+| `categories` | wikilinks | required | one or more categories the note belongs to |
+| `types` | wikilinks | untyped | what sort of note this is, such as a handover |
+| `tags` | strings | untagged | free tags |
+
+A single category reads as a one-item list. An agent note has no
+`status`.
+
+`kind: "[[notes]]"` belongs to the operator's own thinking. Agents
+never create a note of that kind. An agent writes `kind: "[[agents]]"`
+instead.
+
+Each `types` link must point to a note that already exists, so agents
+cannot invent new types. The schema checks the link form only. The
+vault checker checks that the note exists. See ADR
+`20261126-vault-writing-standards`.
+
+## Notes
+
+One file per note in `Notes/`. A note holds the operator's own
+thinking. Agents never create one, and an agent edit only warns. These
+notes stay light: only `kind` is required, so `created` is optional.
+
+| Property | Form | Default when absent | Meaning |
+|---|---|---|---|
+| `kind` | `"[[notes]]"` | required | the note type marker |
+| `created` | date or datetime | none | when the note was written |
+| `categories` | wikilinks | none | the waypoints the note belongs to |
+| `types` | wikilinks | none | what sort of note this is |
+| `related` | wikilinks | none | notes this one relates to |
+
+A single link reads as a one-item list. Every other property, such as
+`tags` or `updated`, is kept as written.
+
+The checker reports a malformed note as a warning, and as an error
+under `--agent`, so an agent write is caught and the operator is never
+blocked.
+
+## References
+
+One file per reference in `References/`: a recipe, a book, or another
+thing the operator looks up rather than thinks with. Only `kind` is
+required.
+
+| Property | Form | Default when absent | Meaning |
+|---|---|---|---|
+| `kind` | `"[[references]]"` | required | the note type marker |
+| `created` | date or datetime | none | when the note was written |
+| `categories` | wikilinks | none | the waypoints the reference belongs to |
+| `types` | wikilinks | none | what sort of reference it is, such as a recipe |
+| `related` | wikilinks | none | notes this one relates to |
+
+A single link reads as a one-item list. A reference keeps its own
+fields, such as `rating`, `serving size`, `ingredients` or `author`, as
+written.
+
+## Waypoints
+
+One file per waypoint in `Waypoints/`: the areas of the operator's
+life. A waypoint may sit under another one through `categories`, and a
+note's `categories` points at a waypoint. Only `kind` is required.
+
+| Property | Form | Default when absent | Meaning |
+|---|---|---|---|
+| `kind` | `"[[waypoints]]"` | required | the note type marker |
+| `created` | date or datetime | none | when the note was written |
+| `categories` | wikilinks | none | the waypoints this one sits under |
+| `types` | wikilinks | none | what sort of note this is |
+| `related` | wikilinks | none | notes this one relates to |
+| `cover` | wikilink | none | the image shown for this waypoint |
+
+A single link reads as a one-item list. A `cover` holds one link, in
+the quoted form, for example `cover: "[[image.jpg]]"`.
+
+References and waypoints follow the same checker rule as notes: a
+malformed one is a warning, and an error under `--agent`. The three
+kinds are in ADR `20261126-vault-writing-standards`, with an amendment
+dated 2026-11-26.
+
+## Journal notes
+
+One file per day in `Journal/Daily/`. These daily notes are the
+monkey-tasks journal. The contract names only the place and the file
+name: `YYYY-MM-DD.md`, a real local date. `journalFileName` checks the
+name.
+
+No frontmatter is required. The body grammar belongs to monkey-tasks
+ADR `20261112-journal-format`. The vault checker never blocks a write
+to a journal note.

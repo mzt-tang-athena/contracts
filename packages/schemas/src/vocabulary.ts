@@ -165,29 +165,49 @@ function rawStatus(raw: unknown): TaskStatus | null {
   return parsed.success ? (parsed.data ?? null) : null;
 }
 
+/** One task warning, named by the property that raised it. */
+export type TaskWarning = {
+  field: string;
+  message: string;
+};
+
 /**
- * One message per task frontmatter value the schema reads through a
+ * One warning per task frontmatter value the schema reads through a
  * fallback, or that disagrees with another. A warning means the note is
  * valid and its row stays; it says which value was replaced or what
  * disagrees.
  */
-export function taskWarnings(values: Record<string, unknown>): string[] {
-  const warnings: string[] = [];
+export function taskWarningDetails(
+  values: Record<string, unknown>,
+): TaskWarning[] {
+  const warnings: TaskWarning[] = [];
   const weight = values["alert weight"];
   if (weight != null && !alertWeights.some((value) => value === weight)) {
-    warnings.push(
-      `alert weight ${JSON.stringify(weight)} is not harsh or quiet, so it is a normal reminder`,
-    );
+    warnings.push({
+      field: "alert weight",
+      message: `alert weight ${JSON.stringify(weight)} is not harsh or quiet, so it is a normal reminder`,
+    });
   }
   const status = rawStatus(values.status);
   const completed = values.completed;
   if (status === "[[done]]" && completed == null) {
-    warnings.push("status [[done]] has no completed date");
+    warnings.push({
+      field: "status",
+      message: "status [[done]] has no completed date",
+    });
   }
   if (status != null && status !== "[[done]]" && completed != null) {
-    warnings.push(`completed date with status ${status} is not done`);
+    warnings.push({
+      field: "completed",
+      message: `completed date with status ${status} is not done`,
+    });
   }
   return warnings;
+}
+
+/** The same warnings as plain messages, for clients that only print them. */
+export function taskWarnings(values: Record<string, unknown>): string[] {
+  return taskWarningDetails(values).map((warning) => warning.message);
 }
 
 /** Frontmatter of a list note, per ticket 0004. */
@@ -203,3 +223,84 @@ export type ListFrontmatter = z.infer<typeof listFrontmatter>;
 export function taskIsDone(task: TaskFrontmatter): boolean {
   return task.completed != null && task.completed !== "";
 }
+
+/**
+ * Frontmatter of an agent note in `Agents/`, per ADR
+ * 20261126-vault-writing-standards. `types` links must resolve to an
+ * existing note; the vault checker enforces that, not this schema.
+ */
+export const agentFrontmatter = z
+  .object({
+    kind: wikilink.pipe(z.literal("[[agents]]")),
+    created: dateOrDatetime,
+    categories: z.preprocess(
+      (raw) => (raw == null || Array.isArray(raw) ? raw : [raw]),
+      z.array(wikilink).min(1, "an agent note needs at least one category"),
+    ),
+    types: optionalList(wikilink),
+    tags: optionalList(z.string()),
+  })
+  .loose();
+export type AgentFrontmatter = z.infer<typeof agentFrontmatter>;
+
+/**
+ * The fields the three kinds the operator writes share, per ADR
+ * 20261126-vault-writing-standards and its 2026-11-26 amendment. Only
+ * `kind` is required on those notes, so `created` is optional here.
+ */
+const operatorFields = {
+  created: dateOrDatetime.nullish(),
+  categories: optionalList(wikilink),
+  types: optionalList(wikilink),
+  related: optionalList(wikilink),
+};
+
+/** Frontmatter of the operator's own thinking, `kind: "[[notes]]"`. */
+export const noteFrontmatter = z
+  .object({
+    kind: wikilink.pipe(z.literal("[[notes]]")),
+    ...operatorFields,
+  })
+  .loose();
+export type NoteFrontmatter = z.infer<typeof noteFrontmatter>;
+
+/** Frontmatter of a reference note, `kind: "[[references]]"`. */
+export const referenceFrontmatter = z
+  .object({
+    kind: wikilink.pipe(z.literal("[[references]]")),
+    ...operatorFields,
+  })
+  .loose();
+export type ReferenceFrontmatter = z.infer<typeof referenceFrontmatter>;
+
+/** Frontmatter of a waypoint note, `kind: "[[waypoints]]"`. */
+export const waypointFrontmatter = z
+  .object({
+    kind: wikilink.pipe(z.literal("[[waypoints]]")),
+    ...operatorFields,
+    cover: wikilink.nullish(),
+  })
+  .loose();
+export type WaypointFrontmatter = z.infer<typeof waypointFrontmatter>;
+
+function isCalendarDate(year: number, month: number, day: number): boolean {
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return (
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day
+  );
+}
+
+/**
+ * The file name of a daily journal note in `Journal/Daily/`: a real
+ * local date, `YYYY-MM-DD.md`. The body grammar belongs to monkey-tasks
+ * ADR 20261112-journal-format; no frontmatter is required.
+ */
+export const journalFileName = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}\.md$/, "expected a journal file name like 2026-11-26.md")
+  .refine((name) => {
+    const [year, month, day] = name.slice(0, 10).split("-").map(Number);
+    return isCalendarDate(year, month, day);
+  }, "expected a real calendar date");
