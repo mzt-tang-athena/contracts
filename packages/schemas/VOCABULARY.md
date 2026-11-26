@@ -100,7 +100,9 @@ own (pinned order, icon, a waypoint) only when a feature asks for them.
 One file per note in `Agents/`. An agent note holds what an agent
 wrote for the operator to read or keep: a handover, research, or a
 note about the life system. The folder is flat. Lists come from a
-Base, not from subfolders.
+Base, not from subfolders. A note directly in `Agents/` whose kind is
+not `agents` is an error. A note in an `Agents/` subfolder is a
+warning.
 
 | Property | Form | Default when absent | Meaning |
 |---|---|---|---|

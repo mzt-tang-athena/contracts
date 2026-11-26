@@ -49,7 +49,8 @@ A consumer that falls behind shows up in `npm outdated`.
 is `@mzt-tang-athena/schemas`, read from the registry. `v0.3.0` reads
 a deed note as a task with a status, and drops the deed schema.
 `v0.3.1` adds the agent note schema and the journal file name rule.
-`v0.4.0` adds the `vault-check` command and its package bin.
+`v0.4.0` adds the `vault-check` command and its package bin. `v0.5.0`
+adds the `Agents/` folder rule to that command.
 
 ## Vault check
 
@@ -57,7 +58,8 @@ a deed note as a task with a status, and drops the deed schema.
 the vault. ADR `docs/adr/20261126-vault-writing-standards.md` says why.
 It reads a note's `kind` and checks it against that kind's schema. It
 also checks a journal file name, and resolves the `types` links on an
-agent note against the vault's file names.
+agent note against the vault's file names. It keeps `Agents/` flat, and
+holding agent notes only.
 
 ```sh
 # one note, or a whole vault root
@@ -85,10 +87,14 @@ alone, as `<path>` or as `--vault <root>`, checks every note under it.
 A problem prints as `path: field: message`, and a warning's message
 starts with `warning: `. The checker reads only the file name of a note
 under `Journal/Daily/`. A bad name is a warning, so a journal write is
-never blocked. The checker skips `AGENTS.md` files, the `.obsidian`,
-`.git` and `.omp` folders, and the `Templates`, `_Templates` and
-`90-Templates` folders at the vault root. An unreadable folder gets one
-warning, `path: -: warning: unreadable, skipped`.
+never blocked. A note directly in `Agents/` whose kind is not `agents`
+is an error. A note in an `Agents/` subfolder is a warning, because the
+folder is flat. An `Agents` folder deeper in the vault, such as
+`Archive/Agents/`, is not this folder, and the rule ignores it. The
+checker skips `AGENTS.md` files, the `.obsidian`, `.git` and `.omp`
+folders, and the `Templates`, `_Templates` and `90-Templates` folders
+at the vault root. An unreadable folder gets one warning,
+`path: -: warning: unreadable, skipped`.
 
 ### Run it today
 
@@ -106,7 +112,7 @@ the publish workflow run, or publish by hand from a machine with a
 
 ```sh
 npm publish --workspace @mzt-tang-athena/schemas
-npm install @mzt-tang-athena/schemas@^0.4.0
+npm install @mzt-tang-athena/schemas@^0.5.0
 node_modules/.bin/vault-check --vault ~/vault/main
 ```
 
@@ -133,11 +139,11 @@ agree, then publishes.
 
 | Package | Tag |
 | --- | --- |
-| `schemas` | `v0.4.0` |
+| `schemas` | `v0.5.0` |
 | `browser-driver` | `browser-driver-v0.1.0` |
 | `vale-rules` | `vale-rules-v0.1.0` |
 
 ```sh
-git tag v0.4.0
-git push origin v0.4.0
+git tag v0.5.0
+git push origin v0.5.0
 ```

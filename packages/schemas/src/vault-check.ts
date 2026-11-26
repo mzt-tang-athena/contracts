@@ -17,7 +17,10 @@ export type Severity = "error" | "warning";
 export type Problem = {
   /** Vault-relative path, or an absolute path when the note is outside the vault. */
   path: string;
-  /** The property at fault: a frontmatter key, `kind`, `types` or `file name`. */
+  /**
+   * The property at fault: a frontmatter key, `kind`, `types`, `file name`
+   * or `folder`.
+   */
   field: string;
   severity: Severity;
   message: string;
@@ -92,6 +95,17 @@ export function checkNote(input: NoteInput, names: NoteNames): Problem[] {
 
   const values = parseFrontmatter(input.path, input.text).values;
   const kind = noteKind(values);
+  const place = agentFolderPlace(input.path);
+
+  if (place === "top" && kind !== "agents") {
+    add(
+      "kind",
+      "error",
+      kind === null
+        ? "a note directly in Agents/ needs kind [[agents]]"
+        : `a note directly in Agents/ must be kind [[agents]], not [[${kind}]]`,
+    );
+  }
 
   if (input.agent) {
     if (input.existingKind == null && kind === "notes") {
@@ -142,6 +156,14 @@ export function checkNote(input: NoteInput, names: NoteNames): Problem[] {
       break;
   }
 
+  if (place === "nested") {
+    add(
+      "folder",
+      "warning",
+      "Agents/ is flat; a note belongs directly in Agents/",
+    );
+  }
+
   return problems;
 }
 
@@ -188,6 +210,17 @@ function linkTarget(link: string): string {
 export function isJournalPath(path: string): boolean {
   const parts = path.split(/[\\/]/);
   return parts.some((part, index) => part === "Journal" && parts[index + 1] === "Daily");
+}
+
+/**
+ * Where a note sits in the vault's flat `Agents/` folder: directly in it,
+ * in one of its subfolders, or anywhere else. An `Agents` folder deeper in
+ * the vault, such as `Archive/Agents/`, is not this folder.
+ */
+export function agentFolderPlace(path: string): "top" | "nested" | null {
+  const parts = path.split(/[\\/]/);
+  if (parts[0] !== "Agents") return null;
+  return parts.length === 2 ? "top" : "nested";
 }
 
 /**
