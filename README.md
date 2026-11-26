@@ -49,6 +49,69 @@ A consumer that falls behind shows up in `npm outdated`.
 is `@mzt-tang-athena/schemas`, read from the registry. `v0.3.0` reads
 a deed note as a task with a status, and drops the deed schema.
 `v0.3.1` adds the agent note schema and the journal file name rule.
+`v0.4.0` adds the `vault-check` command and its package bin.
+
+## Vault check
+
+`@mzt-tang-athena/schemas` ships `vault-check`, the one rule engine for
+the vault. ADR `docs/adr/20261126-vault-writing-standards.md` says why.
+It reads a note's `kind` and checks it against that kind's schema. It
+also checks a journal file name, and resolves the `types` links on an
+agent note against the vault's file names.
+
+```sh
+# one note, or a whole vault root
+node packages/schemas/dist/vault-check-bin.js ~/vault/main/Agents/x.md
+node packages/schemas/dist/vault-check-bin.js ~/vault/main
+
+# text an agent has not written yet, as a hook sees it
+node packages/schemas/dist/vault-check-bin.js --stdin \
+  --path Agents/x.md --vault ~/vault/main --agent < proposed.md
+```
+
+| Flag | Meaning |
+|---|---|
+| `--vault <root>` | the vault root; discovered when absent |
+| `--agent` | an agent never creates a `kind: "[[notes]]"` note; editing one warns |
+| `--warn` | print problems and exit 0 (default) |
+| `--block` | exit 1 on an error; warnings never fail |
+| `--json` | print the problems as JSON |
+
+Without `--vault`, the checker walks up from the note's folder to the
+nearest folder holding `.obsidian` or `.git`. If there is none, it
+exits 2 and asks for `--vault`. It never reads the cwd. A vault root
+alone, as `<path>` or as `--vault <root>`, checks every note under it.
+
+A problem prints as `path: field: message`, and a warning's message
+starts with `warning: `. The checker reads only the file name of a note
+under `Journal/Daily/`. A bad name is a warning, so a journal write is
+never blocked. The checker skips `AGENTS.md` files, the `.obsidian`,
+`.git` and `.omp` folders, and the `Templates`, `_Templates` and
+`90-Templates` folders at the vault root. An unreadable folder gets one
+warning, `path: -: warning: unreadable, skipped`.
+
+### Run it today
+
+The registry has no `0.3.x` release: those tags were never pushed. Run
+the command from a checkout:
+
+```sh
+npm ci && npm run build
+node packages/schemas/dist/vault-check-bin.js --vault ~/vault/main
+```
+
+To get it on `PATH`, publish the package. Tag the merge commit and let
+the publish workflow run, or publish by hand from a machine with a
+`write:packages` token:
+
+```sh
+npm publish --workspace @mzt-tang-athena/schemas
+npm install @mzt-tang-athena/schemas@^0.4.0
+node_modules/.bin/vault-check --vault ~/vault/main
+```
+
+The publish workflow checks that the tag matches the version, so bump
+the version before you tag.
 
 ## Vale rules
 
@@ -70,11 +133,11 @@ agree, then publishes.
 
 | Package | Tag |
 | --- | --- |
-| `schemas` | `v0.3.1` |
+| `schemas` | `v0.4.0` |
 | `browser-driver` | `browser-driver-v0.1.0` |
 | `vale-rules` | `vale-rules-v0.1.0` |
 
 ```sh
-git tag v0.3.1
-git push origin v0.3.1
+git tag v0.4.0
+git push origin v0.4.0
 ```
