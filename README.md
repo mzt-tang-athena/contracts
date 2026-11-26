@@ -57,9 +57,9 @@ adds the `Agents/` folder rule to that command.
 `@mzt-tang-athena/schemas` ships `vault-check`, the one rule engine for
 the vault. ADR `docs/adr/20261126-vault-writing-standards.md` says why.
 It reads a note's `kind` and checks it against that kind's schema. It
-also checks a journal file name, resolves the `types` links on an
-agent note against the vault's file names, and keeps `Agents/` flat
-and holding agent notes only.
+also checks a journal file name, and resolves the `types` links on an
+agent note against the vault's file names. It keeps `Agents/` flat, and
+holding agent notes only.
 
 ```sh
 # one note, or a whole vault root
@@ -90,10 +90,10 @@ under `Journal/Daily/`. A bad name is a warning, so a journal write is
 never blocked. A note directly in `Agents/` whose kind is not `agents`
 is an error. A note in an `Agents/` subfolder is a warning, because the
 folder is flat. An `Agents` folder deeper in the vault, such as
-`Archive/Agents/`, is not this folder and is left alone. The checker
-skips `AGENTS.md` files, the `.obsidian`, `.git` and `.omp` folders,
-and the `Templates`, `_Templates` and `90-Templates` folders at the
-vault root. An unreadable folder gets one warning,
+`Archive/Agents/`, is not this folder, and the rule ignores it. The
+checker skips `AGENTS.md` files, the `.obsidian`, `.git` and `.omp`
+folders, and the `Templates`, `_Templates` and `90-Templates` folders
+at the vault root. An unreadable folder gets one warning,
 `path: -: warning: unreadable, skipped`.
 
 ### Run it today
