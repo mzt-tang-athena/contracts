@@ -43,6 +43,8 @@ usage: vault-check [<path>] [options]
 output: one line per problem, "path: field: message"; a warning's message
 starts with "warning: ". A folder the checker cannot read is skipped with
 "path: -: warning: unreadable, skipped".
+agents folder: a note directly in Agents/ must be kind agents, or it is an
+error. A note in an Agents/ subfolder is a warning, because the folder is flat.
 `;
 
 type Options = {

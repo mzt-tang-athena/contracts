@@ -151,15 +151,15 @@ describe("checkNote", () => {
 
   it("applies the agent rule only with agent mode", () => {
     const notes = `---\nkind: "[[notes]]"\n---\n`;
-    expect(check("Agents/new.md", notes)).toEqual([]);
-    expect(check("Agents/new.md", notes, { agent: true, existingKind: null })).toContainEqual(
+    expect(check("Notes/new.md", notes)).toEqual([]);
+    expect(check("Notes/new.md", notes, { agent: true, existingKind: null })).toContainEqual(
       expect.objectContaining({ field: "kind", severity: "error" }),
     );
-    expect(check("Agents/old.md", notes, { agent: true, existingKind: "notes" })).toContainEqual(
+    expect(check("Notes/old.md", notes, { agent: true, existingKind: "notes" })).toContainEqual(
       expect.objectContaining({ field: "kind", severity: "warning" }),
     );
     expect(
-      check("Agents/old.md", notes, { agent: true, existingKind: "agents" }),
+      check("Notes/old.md", notes, { agent: true, existingKind: "agents" }),
     ).toEqual([]);
   });
 });
@@ -203,6 +203,56 @@ describe("runCli", () => {
     ]);
   });
 
+  it("errors on a note directly in Agents/ that is not kind agents", () => {
+    const root = makeVault({
+      "Agents/thinking.md": `---\nkind: "[[notes]]"\n---\n`,
+      "Agents/plain.md": `# no frontmatter\n`,
+      "Agents/good.md": `---\nkind: "[[agents]]"\ncreated: 2026-11-26\ncategories: "[[work]]"\n---\n`,
+    });
+    const result = runCli([root, "--block"], "", root);
+    expect(result.code).toBe(1);
+    expect(result.stdout.trim().split("\n")).toEqual([
+      "Agents/plain.md: kind: a note directly in Agents/ needs kind [[agents]]",
+      "Agents/thinking.md: kind: a note directly in Agents/ must be kind [[agents]], not [[notes]]",
+    ]);
+  });
+
+  it("warns on a note in an Agents/ subfolder and still checks its kind", () => {
+    const root = makeVault({
+      "Agents/home-server/topology.md": `---\nkind: "[[agents]]"\ncreated: 2026-11-26\ncategories: "[[work]]"\n---\n`,
+      "Agents/home-server/broken.md": `---\nkind: "[[tasks]]"\n---\n`,
+    });
+    const warned = runCli(
+      [join(root, "Agents/home-server/topology.md"), "--block"],
+      "",
+      root,
+    );
+    expect(warned.code).toBe(0);
+    expect(warned.stdout).toBe(
+      "Agents/home-server/topology.md: folder: warning: Agents/ is flat; a note belongs directly in Agents/\n",
+    );
+
+    const broken = runCli([root, "--block"], "", root);
+    expect(broken.code).toBe(1);
+    expect(broken.stdout.trim().split("\n")).toEqual([
+      "Agents/home-server/broken.md: created: a task note needs a created date",
+      "Agents/home-server/broken.md: folder: warning: Agents/ is flat; a note belongs directly in Agents/",
+      "Agents/home-server/topology.md: folder: warning: Agents/ is flat; a note belongs directly in Agents/",
+    ]);
+  });
+
+  it("leaves an Agents folder deeper in the vault alone", () => {
+    const root = makeVault({
+      "Archive/Agents/old/topology.md": `# no frontmatter\n`,
+      "Archive/Agents/old/thinking.md": `---\nkind: "[[notes]]"\n---\n`,
+    });
+    expect(runCli([root, "--block"], "", root)).toEqual({
+      code: 0,
+      stdout: "",
+      stderr: "",
+    });
+  });
+
   it("skips an AGENTS.md file given directly", () => {
     const root = makeVault({ "Journal/Daily/AGENTS.md": "# folder rules\n" });
     const result = runCli([join(root, "Journal/Daily/AGENTS.md")], "", root);
@@ -225,7 +275,7 @@ describe("runCli", () => {
   it("checks proposed content from stdin against the vault", () => {
     const root = makeVault({
       "Agents/handover.md": `---\nkind: "[[agents]]"\ncreated: 2026-11-01\ncategories: "[[work]]"\n---\n`,
-      "Agents/old.md": `---\nkind: "[[notes]]"\n---\n`,
+      "Notes/old.md": `---\nkind: "[[notes]]"\n---\n`,
     });
     const newNote = `---\nkind: "[[agents]]"\ncreated: 2026-11-26\ncategories: "[[work]]"\ntypes: "[[handover]]"\n---\n`;
 
@@ -237,7 +287,7 @@ describe("runCli", () => {
     expect(pass).toMatchObject({ code: 0, stdout: "" });
 
     const notes = runCli(
-      ["--stdin", "--path", "Agents/new.md", "--vault", root, "--agent", "--block"],
+      ["--stdin", "--path", "Notes/new.md", "--vault", root, "--agent", "--block"],
       `---\nkind: "[[notes]]"\n---\n`,
       root,
     );
@@ -245,13 +295,13 @@ describe("runCli", () => {
     expect(notes.stdout).toContain("an agent never creates a kind notes note");
 
     const edit = runCli(
-      ["--stdin", "--path", "Agents/old.md", "--vault", root, "--agent", "--block"],
+      ["--stdin", "--path", "Notes/old.md", "--vault", root, "--agent", "--block"],
       `---\nkind: "[[notes]]"\n---\nmore thinking\n`,
       root,
     );
     expect(edit.code).toBe(0);
     expect(edit.stdout).toBe(
-      "Agents/old.md: kind: warning: this note is kind notes, the operator's own thinking\n",
+      "Notes/old.md: kind: warning: this note is kind notes, the operator's own thinking\n",
     );
   });
 
