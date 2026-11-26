@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import {
+  agentFrontmatter,
+  journalFileName,
   listFrontmatter,
   taskFrontmatter,
   taskIsDone,
@@ -836,5 +838,123 @@ describe("validateNote", () => {
 describe("wikilinkTarget", () => {
   it("extracts the target", () => {
     expect(wikilinkTarget("[[groceries]]")).toBe("groceries");
+  });
+});
+
+describe("agentFrontmatter", () => {
+  it("reads an agent note as an agent writes it", () => {
+    const result = validateNote(
+      "mstack-handover.md",
+      note(
+        'kind: "[[agents]]"',
+        "created: 2026-11-26T09:30",
+        "categories:",
+        '  - "[[life engineering systems]]"',
+        "types:",
+        '  - "[[handovers]]"',
+        "tags:",
+        "  - mstack",
+        "  - handover",
+      ),
+      agentFrontmatter,
+    );
+    expect(result.errors).toBeNull();
+    expect(result.data).toMatchObject({
+      kind: "[[agents]]",
+      created: "2026-11-26T09:30",
+      categories: ["[[life engineering systems]]"],
+      types: ["[[handovers]]"],
+      tags: ["mstack", "handover"],
+    });
+  });
+
+  it("reads a bare kind and a date-only created", () => {
+    const result = agentFrontmatter.safeParse({
+      kind: "agents",
+      created: "2026-11-26",
+      categories: ["[[physical]]"],
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.kind).toBe("[[agents]]");
+    }
+  });
+
+  it("reads a single category as a one-item list", () => {
+    const result = agentFrontmatter.safeParse({
+      kind: "[[agents]]",
+      created: "2026-11-26",
+      categories: "[[physical]]",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.categories).toEqual(["[[physical]]"]);
+    }
+  });
+
+  it("keeps properties it does not know", () => {
+    const result = agentFrontmatter.safeParse({
+      kind: "[[agents]]",
+      created: "2026-11-26",
+      categories: ["[[physical]]"],
+      banner: "x.png",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.banner).toBe("x.png");
+    }
+  });
+
+  it("rejects a note without categories", () => {
+    for (const categories of [undefined, null, []]) {
+      const result = agentFrontmatter.safeParse({
+        kind: "[[agents]]",
+        created: "2026-11-26",
+        categories,
+      });
+      expect(result.success).toBe(false);
+    }
+  });
+
+  it("rejects a note without a created date", () => {
+    for (const created of [undefined, null, "26 Nov 2026"]) {
+      const result = agentFrontmatter.safeParse({
+        kind: "[[agents]]",
+        created,
+        categories: ["[[physical]]"],
+      });
+      expect(result.success).toBe(false);
+    }
+  });
+
+  it("rejects the operator's notes kind and every other kind", () => {
+    for (const kind of ["notes", "[[notes]]", "[[tasks]]", "[[agent]]", ""]) {
+      const result = agentFrontmatter.safeParse({
+        kind,
+        created: "2026-11-26",
+        categories: ["[[physical]]"],
+      });
+      expect(result.success).toBe(false);
+    }
+  });
+});
+
+describe("journalFileName", () => {
+  it("accepts a real date", () => {
+    for (const name of ["2026-11-26.md", "2024-02-29.md", "2023-08-08.md"]) {
+      expect(journalFileName.safeParse(name).success).toBe(true);
+    }
+  });
+
+  it("rejects a date that is not on the calendar", () => {
+    for (const name of ["2025-02-29.md", "2026-13-01.md", "2026-04-31.md", "2026-00-10.md"]) {
+      expect(journalFileName.safeParse(name).success).toBe(false);
+    }
+  });
+
+  it("rejects any other name", () => {
+    for (const name of ["AGENTS.md", "2026-11-26", "2026-11-26.txt", "2026-1-26.md", "Daily/2026-11-26.md"]) {
+      expect(journalFileName.safeParse(name).success).toBe(false);
+    }
   });
 });

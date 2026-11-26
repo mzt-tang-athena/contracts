@@ -201,3 +201,44 @@ export type ListFrontmatter = z.infer<typeof listFrontmatter>;
 export function taskIsDone(task: TaskFrontmatter): boolean {
   return task.completed != null && task.completed !== "";
 }
+
+/**
+ * Frontmatter of an agent note in `Agents/`, per ADR
+ * 20261126-vault-writing-standards. `types` links must resolve to an
+ * existing note; the vault checker enforces that, not this schema.
+ */
+export const agentFrontmatter = z
+  .object({
+    kind: wikilink.pipe(z.literal("[[agents]]")),
+    created: dateOrDatetime,
+    categories: z.preprocess(
+      (raw) => (raw == null || Array.isArray(raw) ? raw : [raw]),
+      z.array(wikilink).min(1, "an agent note needs at least one category"),
+    ),
+    types: optionalList(wikilink),
+    tags: optionalList(z.string()),
+  })
+  .loose();
+export type AgentFrontmatter = z.infer<typeof agentFrontmatter>;
+
+function isCalendarDate(year: number, month: number, day: number): boolean {
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return (
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day
+  );
+}
+
+/**
+ * The file name of a daily journal note in `Journal/Daily/`: a real
+ * local date, `YYYY-MM-DD.md`. The body grammar belongs to monkey-tasks
+ * ADR 20261112-journal-format; no frontmatter is required.
+ */
+export const journalFileName = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}\.md$/, "expected a journal file name like 2026-11-26.md")
+  .refine((name) => {
+    const [year, month, day] = name.slice(0, 10).split("-").map(Number);
+    return isCalendarDate(year, month, day);
+  }, "expected a real calendar date");

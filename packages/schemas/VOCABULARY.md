@@ -16,8 +16,8 @@ Rules that hold for all note types:
 - Dates are `YYYY-MM-DD`. Datetimes are `YYYY-MM-DDTHH:MM`, seconds
   optional. No time zones; the phone's local time is the meaning.
 - An absent property means the documented default. Nothing is required
-  beyond `kind` on a deed note, and `kind` and `created` on a task or
-  list note.
+  beyond `kind` on a deed note, `kind` and `created` on a task or list
+  note, and `kind`, `created` and `categories` on an agent note.
 - Properties the schemas do not know are preserved, never rejected, so
   notes keep whatever Obsidian plugins add.
 - Anything the app or a query needs lives in the note. Filesystem
@@ -94,3 +94,41 @@ with the old `lists` property reads its first link.
 
 A list needs no other metadata yet. List notes earn properties of their
 own (pinned order, icon, a waypoint) only when a feature asks for them.
+
+## Agent notes
+
+One file per note in `Agents/`. An agent note holds what an agent
+wrote for the operator to read or keep: a handover, research, or a
+note about the life system. The folder is flat. Lists come from a
+Base, not from subfolders.
+
+| Property | Form | Default when absent | Meaning |
+|---|---|---|---|
+| `kind` | `"[[agents]]"` | required | the note type marker |
+| `created` | date or datetime | required | when the agent wrote the note |
+| `categories` | wikilinks | required | one or more categories the note belongs to |
+| `types` | wikilinks | untyped | what sort of note this is, such as a handover |
+| `tags` | strings | untagged | free tags |
+
+A single category reads as a one-item list. An agent note has no
+`status`.
+
+`kind: "[[notes]]"` belongs to the operator's own thinking. Agents
+never create a note of that kind. An agent writes `kind: "[[agents]]"`
+instead.
+
+Each `types` link must point to a note that already exists, so agents
+cannot invent new types. The schema checks the link form only. The
+vault checker checks that the note exists. See ADR
+`20261126-vault-writing-standards`.
+
+## Journal notes
+
+One file per day in `Journal/Daily/`. These daily notes are the
+monkey-tasks journal. The contract names only the place and the file
+name: `YYYY-MM-DD.md`, a real local date. `journalFileName` checks the
+name.
+
+No frontmatter is required. The body grammar belongs to monkey-tasks
+ADR `20261112-journal-format`. The vault checker never blocks a write
+to a journal note.
