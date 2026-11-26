@@ -2,7 +2,7 @@
 title: Keep Agents/ flat and holding only agent notes
 created: 2026-11-26
 priority: normal
-assignee:
+assignee: opencode
 pr:
 depends: [20261126-vault-check-cli]
 ---
