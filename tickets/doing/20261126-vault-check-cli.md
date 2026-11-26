@@ -2,7 +2,7 @@
 title: A vault-check command that enforces the note contracts
 created: 2026-11-26
 priority: normal
-assignee:
+assignee: opencode
 pr:
 depends: [20261126-vault-writing-standards]
 ---
