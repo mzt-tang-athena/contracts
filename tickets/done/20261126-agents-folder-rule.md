@@ -3,7 +3,7 @@ title: Keep Agents/ flat and holding only agent notes
 created: 2026-11-26
 priority: normal
 assignee: opencode
-pr:
+pr: 27
 depends: [20261126-vault-check-cli]
 ---
 
@@ -27,12 +27,24 @@ caught at the write.
 
 ## Acceptance
 
-- [ ] A note directly in `Agents/` with another kind, or with no kind,
+- [x] A note directly in `Agents/` with another kind, or with no kind,
       fails `--block`.
-- [ ] A note in an `Agents/` subfolder warns, and the warning never
+- [x] A note in an `Agents/` subfolder warns, and the warning never
       fails `--block`.
-- [ ] A note directly in `Agents/` with kind `agents` passes.
-- [ ] An `Agents` folder below the vault root gets no problem.
-- [ ] A sweep of the migrated vault exits 0.
+- [x] A note directly in `Agents/` with kind `agents` passes.
+- [x] An `Agents` folder below the vault root gets no problem.
+- [x] A sweep of the migrated vault exits 0.
 
 ## Outcome
+
+The rule ships in `0.5.0`. The folder check keys on the top-level
+`Agents` folder only, so `Archive/Agents/` is left alone.
+
+The vault migration that this rule checks followed: 20 notes carry
+`kind: "[[agents]]"` with `created` and `categories`, the 5
+`home-server/` notes moved up with their `diagrams/` folder, and 14
+stale notes moved to `Archive/Agents/old system agent generated
+notes/`. A sweep of the vault exits 0 and finds nothing.
+
+Gate full pass, `npm test` 155 pass, typecheck, build and `publint`
+clean.
