@@ -140,3 +140,15 @@ PARA. A later vault change points them at `VOCABULARY.md`.
 `Journal/Daily/AGENTS.md` says that no agent or script writes daily
 notes. The monkey-tasks app appends to them, so that file needs the
 same update.
+
+Amendment 2026-11-26: we now cover the operator's three kinds. A
+`notes`, `references` or `waypoints` note needs only `kind`. `created`
+is not required on those three, and the rule that a task, list or agent
+note needs it still holds.
+
+They stay light because the hooks never block the operator. They exist
+mainly to stop an agent writing a malformed note. The checker reports a
+malformed one as a warning, and as an error under `--agent`.
+
+`categories`, `types`, `related` and `cover` hold links, in the vault's
+quoted form. The contracts keep every other property as written.
