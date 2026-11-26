@@ -17,6 +17,9 @@ const task = `---\nkind: "[[tasks]]"\ncreated: 2026-11-26\ntitle: Ship it\n---\n
 const deed = `---\nkind: "[[deeds]]"\nstatus: "[[done]]"\ncompleted: 2026-11-26\n---\n`;
 const list = `---\nkind: "[[lists]]"\ncreated: 2026-11-26\n---\n`;
 const agent = `---\nkind: "[[agents]]"\ncreated: 2026-11-26\ncategories:\n  - "[[life engineering systems]]"\ntypes:\n  - "[[handover]]"\n---\n`;
+const notesNote = `---\nkind: "[[notes]]"\ncategories: "[[digital]]"\n---\n`;
+const reference = `---\nkind: "[[references]]"\ntypes: "[[recipes]]"\n---\n`;
+const waypoint = `---\nkind: "[[waypoints]]"\ncover: "[[image.jpg]]"\n---\n`;
 
 const roots: string[] = [];
 
@@ -68,13 +71,26 @@ function check(
 }
 
 describe("checkNote", () => {
-  it("passes a valid task, deed, list and agent note", () => {
+  it("passes a valid task, deed, list, agent and operator note", () => {
     expect(check("Tasks/Ship it.md", task)).toEqual([]);
     expect(check("Deeds/Ship it.md", deed)).toEqual([]);
     expect(check("Tasks/Lists/Errands.md", list)).toEqual([]);
     expect(
       check("Agents/handover.md", agent, { names: ["handover"] }),
     ).toEqual([]);
+    expect(check("Notes/thinking.md", notesNote)).toEqual([]);
+    expect(check("References/miso-soup.md", reference)).toEqual([]);
+    expect(check("Waypoints/physical.md", waypoint)).toEqual([]);
+  });
+
+  it("passes each operator kind with a kind alone", () => {
+    for (const [path, kind] of [
+      ["Notes/mine.md", "notes"],
+      ["References/mine.md", "references"],
+      ["Waypoints/mine.md", "waypoints"],
+    ]) {
+      expect(check(path, `---\nkind: ${kind}\n---\n`)).toEqual([]);
+    }
   });
 
   it("reports a broken note of each kind", () => {
@@ -102,6 +118,18 @@ describe("checkNote", () => {
     );
     expect(badDate).toContainEqual(
       expect.objectContaining({ field: "created", severity: "error" }),
+    );
+  });
+
+  it("warns on a malformed operator note, and errors only for an agent", () => {
+    const broken = `---\nkind: "[[references]]"\ntypes: "[[]]"\n---\n`;
+    expect(check("References/mine.md", broken)).toContainEqual(
+      expect.objectContaining({ field: "types.0", severity: "warning" }),
+    );
+    expect(
+      check("References/mine.md", broken, { agent: true }),
+    ).toContainEqual(
+      expect.objectContaining({ field: "types.0", severity: "error" }),
     );
   });
 
@@ -201,6 +229,61 @@ describe("runCli", () => {
     expect(result.stdout.trim().split("\n")).toEqual([
       "Tasks/broken.md: created: a task note needs a created date",
     ]);
+  });
+
+  it("warns on a malformed notes note, and blocks it for an agent", () => {
+    const root = makeVault({
+      "Notes/mine.md": `---\nkind: "[[notes]]"\ncreated: soon\n---\n`,
+    });
+    expect(runCli([root, "--block"], "", root)).toEqual({
+      code: 0,
+      stdout:
+        "Notes/mine.md: created: warning: expected a date like 2026-10-21 or a datetime like 2026-10-21T15:00\n",
+      stderr: "",
+    });
+
+    const blocked = runCli([root, "--agent", "--block"], "", root);
+    expect(blocked.code).toBe(1);
+    expect(blocked.stdout.trim().split("\n")).toEqual([
+      "Notes/mine.md: kind: warning: this note is kind notes, the operator's own thinking",
+      "Notes/mine.md: created: expected a date like 2026-10-21 or a datetime like 2026-10-21T15:00",
+    ]);
+  });
+
+  it("warns on a malformed reference, and blocks it for an agent", () => {
+    const root = makeVault({
+      "References/mine.md": `---\nkind: "[[references]]"\ntypes: "[[]]"\n---\n`,
+    });
+    expect(runCli([root, "--block"], "", root)).toEqual({
+      code: 0,
+      stdout:
+        'References/mine.md: types.0: warning: expected a wikilink like "[[name]]"\n',
+      stderr: "",
+    });
+
+    const blocked = runCli([root, "--agent", "--block"], "", root);
+    expect(blocked.code).toBe(1);
+    expect(blocked.stdout).toBe(
+      'References/mine.md: types.0: expected a wikilink like "[[name]]"\n',
+    );
+  });
+
+  it("warns on a malformed waypoint, and blocks it for an agent", () => {
+    const root = makeVault({
+      "Waypoints/mine.md": `---\nkind: "[[waypoints]]"\ncover: "[[]]"\n---\n`,
+    });
+    expect(runCli([root, "--block"], "", root)).toEqual({
+      code: 0,
+      stdout:
+        'Waypoints/mine.md: cover: warning: expected a wikilink like "[[name]]"\n',
+      stderr: "",
+    });
+
+    const blocked = runCli([root, "--agent", "--block"], "", root);
+    expect(blocked.code).toBe(1);
+    expect(blocked.stdout).toBe(
+      'Waypoints/mine.md: cover: expected a wikilink like "[[name]]"\n',
+    );
   });
 
   it("errors on a note directly in Agents/ that is not kind agents", () => {
@@ -448,5 +531,10 @@ describe.skipIf(!existsSync(liveVault))("live vault", () => {
       if (line === "") continue;
       expect(line).toMatch(/^[^:]+: [^:]+: /);
     }
+  });
+
+  it("finds no malformed operator note in the live vault, agent mode included", () => {
+    const result = runCli([liveVault, "--agent", "--block"], "");
+    expect(result.code).toBe(0);
   });
 });

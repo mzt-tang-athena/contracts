@@ -45,6 +45,8 @@ starts with "warning: ". A folder the checker cannot read is skipped with
 "path: -: warning: unreadable, skipped".
 agents folder: a note directly in Agents/ must be kind agents, or it is an
 error. A note in an Agents/ subfolder is a warning, because the folder is flat.
+operator kinds: a malformed notes, references or waypoints note is a warning,
+and an error under --agent.
 `;
 
 type Options = {

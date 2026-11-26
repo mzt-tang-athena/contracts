@@ -5,8 +5,11 @@ import {
   agentFrontmatter,
   journalFileName,
   listFrontmatter,
+  noteFrontmatter,
+  referenceFrontmatter,
   taskFrontmatter,
   taskWarningDetails,
+  waypointFrontmatter,
 } from "./vocabulary.js";
 
 // The vault checker, per ADR 20261126-vault-writing-standards: one
@@ -123,6 +126,10 @@ export function checkNote(input: NoteInput, names: NoteNames): Problem[] {
     }
   }
 
+  // The hooks never block the operator, so a malformed operator note is
+  // only a warning there, and an error for an agent.
+  const operatorSeverity: Severity = input.agent ? "error" : "warning";
+
   switch (kind) {
     case "tasks":
     case "deeds": {
@@ -136,6 +143,13 @@ export function checkNote(input: NoteInput, names: NoteNames): Problem[] {
     case "lists": {
       const parsed = listFrontmatter.safeParse(values);
       if (!parsed.success) addIssues(parsed.error.issues, add);
+      break;
+    }
+    case "notes":
+    case "references":
+    case "waypoints": {
+      const parsed = operatorSchema(kind).safeParse(values);
+      if (!parsed.success) addIssues(parsed.error.issues, add, operatorSeverity);
       break;
     }
     case "agents": {
@@ -172,10 +186,22 @@ type AddIssue = (field: string, severity: Severity, message: string) => void;
 function addIssues(
   issues: readonly { path: PropertyKey[]; message: string }[],
   add: AddIssue,
+  severity: Severity = "error",
 ): void {
   for (const issue of issues) {
     const field = issue.path.length === 0 ? "frontmatter" : issue.path.join(".");
-    add(field, "error", issue.message);
+    add(field, severity, issue.message);
+  }
+}
+
+function operatorSchema(kind: "notes" | "references" | "waypoints") {
+  switch (kind) {
+    case "notes":
+      return noteFrontmatter;
+    case "references":
+      return referenceFrontmatter;
+    case "waypoints":
+      return waypointFrontmatter;
   }
 }
 
