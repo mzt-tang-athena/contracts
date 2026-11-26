@@ -85,17 +85,17 @@ never blocked. The checker skips `AGENTS.md` files and the `.obsidian`,
 
 ### Run it today
 
-Actions is not available on the free plan, so the registry has no
-`0.3.x` release: those tags were never pushed. Run the command from a
-checkout:
+The registry has no `0.3.x` release: those tags were never pushed. Run
+the command from a checkout:
 
 ```sh
 npm ci && npm run build
 node packages/schemas/dist/vault-check-bin.js --vault ~/vault/main
 ```
 
-To get it on `PATH`, publish by hand from a machine with a
-`write:packages` token, then install the package:
+To get it on `PATH`, publish the package. Tag the merge commit and let
+the publish workflow run, or publish by hand from a machine with a
+`write:packages` token:
 
 ```sh
 npm publish --workspace @mzt-tang-athena/schemas
@@ -103,8 +103,8 @@ npm install @mzt-tang-athena/schemas@^0.4.0
 node_modules/.bin/vault-check --vault ~/vault/main
 ```
 
-The publish workflow also checks that the tag matches the version, so
-tag the merge commit when the release matters.
+The publish workflow checks that the tag matches the version, so bump
+the version before you tag.
 
 ## Vale rules
 
