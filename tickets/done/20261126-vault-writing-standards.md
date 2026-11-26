@@ -3,7 +3,7 @@ title: Contracts for agent notes and the journal
 created: 2026-11-26
 priority: normal
 assignee: opencode
-pr:
+pr: 25
 depends: []
 ---
 
