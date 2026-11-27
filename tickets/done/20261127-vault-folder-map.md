@@ -3,7 +3,7 @@ title: The vault folder map lives in the contract
 created: 2026-11-27
 priority: normal
 assignee: opencode
-pr:
+pr: 29
 depends: []
 ---
 
@@ -34,10 +34,14 @@ Docs only, so no package version changes.
 
 ## Acceptance
 
-- [ ] `VOCABULARY.md` carries the folder table and the three vault rules.
-- [ ] Nothing from the retired root `AGENTS.md` is repeated from this document or the hooks.
-- [ ] The ADR amendment names the date, the 58 removed copies and where the rules went.
-- [ ] `scripts/gate.sh full` passes.
+- [x] `VOCABULARY.md` carries the folder table and the three vault rules.
+- [x] Nothing from the retired root `AGENTS.md` is repeated from this document or the hooks.
+- [x] The ADR amendment names the date, the 58 removed copies and where the rules went.
+- [x] `scripts/gate.sh full` passes.
 
 ## Outcome
-(filled in before moving to done/)
+
+Shipped in #29. `VOCABULARY.md` carries the folder table and the three
+vault rules. The ADR amendment records the retirement, the 58 removed
+copies and the new homes. `scripts/gate.sh full` and `make lint` pass at
+the head.
