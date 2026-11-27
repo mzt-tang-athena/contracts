@@ -24,6 +24,32 @@ Rules that hold for all note types:
 - Anything the app or a query needs lives in the note. Filesystem
   metadata is a cache, never a source of truth.
 
+## Vault folders
+
+| Folder | Holds |
+|---|---|
+| `Tasks/` | task notes; list notes in `Tasks/Lists/` |
+| `Deeds/` | deeds: tasks with a status |
+| `Notes/` | the operator's own thinking |
+| `References/` | things the operator looks up |
+| `Waypoints/` | the areas of the operator's life |
+| `Journal/Daily/` | one note per day, `YYYY-MM-DD.md` |
+| `Journal/` | other subfolders: weekly, quarterly, yearly reviews, dreams, memories |
+| `Agents/` | what an agent writes for the operator; flat |
+| `Inbox/` | raw capture, not yet sorted |
+| `Archive/` | retired notes |
+| `Templates/` | Templater sources and Bases |
+| `Attachments/` | images and drawings |
+| `TaskForge/` | TaskForge app settings; the app owns them |
+
+The root notes (`deeds.md`, `notes.md` and the rest) are hubs that embed
+a Base.
+
+- Leave `Archive/` as it is. Do not edit, rename or move a note there.
+- Search for a note by name before you create one. Two files with one
+  name make `[[name]]` links ambiguous.
+- Link by name, `[[name]]`, not by folder path.
+
 ## Task notes
 
 One file per task in `Tasks/`. The filename is what the task is. The

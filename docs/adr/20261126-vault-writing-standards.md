@@ -152,3 +152,11 @@ malformed one as a warning, and as an error under `--agent`.
 
 `categories`, `types`, `related` and `cover` hold links, in the vault's
 quoted form. The contracts keep every other property as written.
+
+Amendment 2026-11-27: we retired PARA. A stale sync replica pushed 58
+copies back on 2026-11-06. Those copies left the vault tree, and git
+keeps them. The vault's rule files fold into this contract and the
+global agent rules. The folder map now lives in
+`packages/schemas/VOCABULARY.md`. The vault's root `AGENTS.md` goes with
+them. On the Windows laptop's case-insensitive disk, its name clashes
+with the `agents.md` hub note. No note kind or property changes here.
